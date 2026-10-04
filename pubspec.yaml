@@ -1,0 +1,48 @@
+name: gym_grid
+description: "GymGrid: daily gym check-ins with a photo, visualised as a year grid."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.11.1
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # State management (Cubits only) and dependency injection.
+  flutter_bloc: ^9.1.1
+  get_it: ^9.3.0
+
+  # Navigation.
+  go_router: ^17.5.0
+
+  # Persistence. drift_flutter bundles SQLite and opens the database in the
+  # app's documents directory.
+  drift: ^2.34.4
+  drift_flutter: ^0.3.1
+
+  # Camera, file storage and path handling.
+  image_picker: ^1.2.3
+  path_provider: ^2.1.6
+  path: ^1.9.1
+
+  # Value equality for domain entities and Cubit states.
+  equatable: ^3.0.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  flutter_lints: ^6.0.0
+
+  # Code generation for drift tables.
+  build_runner: ^2.15.1
+  drift_dev: ^2.34.0
+
+  bloc_test: ^10.0.0
+  mocktail: ^1.0.5
+
+flutter:
+  uses-material-design: true
