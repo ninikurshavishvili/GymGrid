@@ -87,8 +87,13 @@ abstract final class AppTheme {
           disabledBackgroundColor: colors.bgTertiary,
           disabledForegroundColor: colors.textMuted,
           textStyle: text.button,
-          minimumSize: const Size.fromHeight(52),
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+          minimumSize: const Size(64, 52),
+          // Vertical padding keeps wrapped labels off the edges at large
+          // text sizes; minimumSize sets the height at normal sizes.
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.lg,
+            vertical: AppSpacing.md,
+          ),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppRadius.lg),
           ),

@@ -23,6 +23,8 @@ class AppColors extends ThemeExtension<AppColors> {
     required this.textBody,
     required this.textSecondary,
     required this.textMuted,
+    required this.overlayScrim,
+    required this.overlayBorder,
   });
 
   static const AppColors dark = AppColors(
@@ -42,6 +44,8 @@ class AppColors extends ThemeExtension<AppColors> {
     textBody: Color(0xFFC9D1D9),
     textSecondary: Color(0xFF8B949E),
     textMuted: Color(0xFF484F58),
+    overlayScrim: Color(0xB3000000),
+    overlayBorder: Color(0x1AFFFFFF),
   );
 
   /// Screen background.
@@ -92,6 +96,13 @@ class AppColors extends ThemeExtension<AppColors> {
   /// De-emphasised text, such as labels on an empty grid.
   final Color textMuted;
 
+  /// Translucent backing for labels and buttons drawn over photos. Fixed
+  /// rather than derived from the theme because it must read on any image.
+  final Color overlayScrim;
+
+  /// Hairline outline around [overlayScrim] elements.
+  final Color overlayBorder;
+
   @override
   AppColors copyWith({
     Color? bgPrimary,
@@ -110,6 +121,8 @@ class AppColors extends ThemeExtension<AppColors> {
     Color? textBody,
     Color? textSecondary,
     Color? textMuted,
+    Color? overlayScrim,
+    Color? overlayBorder,
   }) {
     return AppColors(
       bgPrimary: bgPrimary ?? this.bgPrimary,
@@ -128,6 +141,8 @@ class AppColors extends ThemeExtension<AppColors> {
       textBody: textBody ?? this.textBody,
       textSecondary: textSecondary ?? this.textSecondary,
       textMuted: textMuted ?? this.textMuted,
+      overlayScrim: overlayScrim ?? this.overlayScrim,
+      overlayBorder: overlayBorder ?? this.overlayBorder,
     );
   }
 
@@ -152,6 +167,8 @@ class AppColors extends ThemeExtension<AppColors> {
       textBody: mix(textBody, other.textBody),
       textSecondary: mix(textSecondary, other.textSecondary),
       textMuted: mix(textMuted, other.textMuted),
+      overlayScrim: mix(overlayScrim, other.overlayScrim),
+      overlayBorder: mix(overlayBorder, other.overlayBorder),
     );
   }
 }

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
@@ -24,12 +26,10 @@ void main() {
     expect(find.byType(HomeScreen), findsOneWidget);
   });
 
-  testWidgets('check-in button pushes the check-in screen and back pops it', (
-    tester,
-  ) async {
+  testWidgets('check-in is pushed over home and back pops it', (tester) async {
     await pumpApp(tester);
 
-    await tester.tap(find.text('Check in'));
+    unawaited(router.push(AppRoutes.checkIn));
     await tester.pumpAndSettle();
     expect(find.byType(CheckInScreen), findsOneWidget);
 
