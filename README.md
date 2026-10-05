@@ -135,7 +135,7 @@ to catch overflow, and an architecture test for layer boundaries.
 
 Designed in Figma: dark theme, GitHub-inspired palette, Inter and
 JetBrains Mono.
-<!-- If the Figma file is public, link it here. -->
+[Figma](https://www.figma.com/design/ytBF3uDE4lYGzzokDuDHLD/GymGrid?node-id=17-45&t=ZwRRKkZXZ6xN7iL8-1).
 
 ## Author
 
