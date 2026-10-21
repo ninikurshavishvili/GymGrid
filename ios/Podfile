@@ -1,6 +1,7 @@
 # Xcode 27 supports deployment targets from iOS 15.
 platform :ios, '15.0'
 
+
 # CocoaPods analytics sends network stats synchronously affecting flutter build latency.
 ENV['COCOAPODS_DISABLE_STATS'] = 'true'
 
