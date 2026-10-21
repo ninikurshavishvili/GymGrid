@@ -1,0 +1,14 @@
+# Code generation settings. After changing a drift table, run:
+#   dart run build_runner build
+targets:
+  $default:
+    builders:
+      drift_dev:
+        options:
+          # Store DateTimes as ISO-8601 text with their UTC offset. The
+          # default, unix seconds, drops milliseconds and the offset.
+          store_date_time_values_as_text: true
+          # Databases for `dart run drift_dev make-migrations`, which saves
+          # each schema version so migrations between them can be tested.
+          databases:
+            app_database: lib/features/check_in/data/database/app_database.dart
