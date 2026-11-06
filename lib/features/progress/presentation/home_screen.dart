@@ -88,8 +88,7 @@ class _NavigationBar extends StatelessWidget {
       alwaysShowMiddle: false,
       backgroundColor: context.colors.bgPrimary,
       border: null,
-      // The screens this pushes have Material app bars, which a Cupertino
-      // title can't animate into.
+      // Nothing opened from here shares this title's transition.
       transitionBetweenRoutes: false,
     );
   }

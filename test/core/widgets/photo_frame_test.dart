@@ -117,4 +117,33 @@ void main() {
       expect(find.text('Photo unavailable'), findsOneWidget);
     });
   });
+
+  testWidgets('the empty frame keeps the 4:3 shape at the default text size', (
+    tester,
+  ) async {
+    await pumpThemed(
+      tester,
+      const PhotoFrame(image: null, semanticLabel: 'Photo'),
+    );
+
+    final size = tester.getSize(find.byType(PhotoFrame));
+    expect(size.width / size.height, closeTo(4 / 3, 0.01));
+  });
+
+  testWidgets('the empty frame grows to fit a long label at 3x text size', (
+    tester,
+  ) async {
+    await pumpThemed(
+      tester,
+      const PhotoFrame(
+        image: null,
+        semanticLabel: 'Photo',
+        emptyLabel: "Tap to take today's photo",
+      ),
+      textScale: 3,
+    );
+
+    expect(tester.takeException(), isNull);
+    expect(tester.getSize(find.byType(PhotoFrame)).height, greaterThan(263));
+  });
 }

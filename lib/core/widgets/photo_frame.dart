@@ -210,35 +210,43 @@ class _EmptyFrame extends StatelessWidget {
       onTap: onTap,
       semanticLabel: label,
       padding: EdgeInsets.zero,
-      child: AspectRatio(
-        aspectRatio: PhotoFrame._aspectRatio,
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(AppSpacing.lg),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: colors.bgTertiary,
-                    borderRadius: BorderRadius.circular(AppRadius.md),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(AppSpacing.sm),
-                    child: Icon(
-                      CupertinoIcons.camera,
-                      size: MediaQuery.textScalerOf(context).scale(20),
-                      color: colors.textSecondary,
+      child: LayoutBuilder(
+        builder: (context, constraints) => ConstrainedBox(
+          // At least the shape of the photo that replaces it, but free to
+          // grow when large text needs more room.
+          constraints: BoxConstraints(
+            minHeight: constraints.maxWidth / PhotoFrame._aspectRatio,
+          ),
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(AppSpacing.lg),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: colors.bgTertiary,
+                      borderRadius: BorderRadius.circular(AppRadius.md),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(AppSpacing.sm),
+                      child: Icon(
+                        CupertinoIcons.camera,
+                        size: MediaQuery.textScalerOf(context).scale(20),
+                        color: colors.textSecondary,
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                Text(
-                  label,
-                  textAlign: TextAlign.center,
-                  style: context.textStyles.bodyStrong,
-                ),
-              ],
+                  const SizedBox(height: AppSpacing.sm),
+                  Text(
+                    label,
+                    textAlign: TextAlign.center,
+                    style: context.textStyles.bodyStrong.copyWith(
+                      color: colors.textPrimary,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

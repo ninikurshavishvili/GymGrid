@@ -21,7 +21,6 @@ class AppColors extends ThemeExtension<AppColors> {
     required this.successSubtle,
     required this.dangerRed,
     required this.warning,
-    required this.accentBlue,
     required this.textPrimary,
     required this.textBody,
     required this.textSecondary,
@@ -43,7 +42,6 @@ class AppColors extends ThemeExtension<AppColors> {
     successSubtle: Color(0x2630D158),
     dangerRed: Color(0xFFFF453A),
     warning: Color(0xFFFF9F0A),
-    accentBlue: Color(0xFF0A84FF),
     textPrimary: Color(0xFFFFFFFF),
     textBody: Color(0xFFEBEBF5),
     textSecondary: Color(0xFF8E8E93),
@@ -73,7 +71,7 @@ class AppColors extends ThemeExtension<AppColors> {
   /// Primary buttons and the selected workout chip.
   final Color actionGreen;
 
-  /// Outline for green elements: selected chip, focused input, pending today.
+  /// Outline for green elements: selected chip, pending today.
   final Color actionGreenBorder;
 
   /// Labels on [actionGreen]. Black, as in Fitness: white on this bright a
@@ -88,9 +86,6 @@ class AppColors extends ThemeExtension<AppColors> {
 
   /// The "at risk" streak state.
   final Color warning;
-
-  /// Text links such as Back.
-  final Color accentBlue;
 
   /// Headings, numbers and button labels.
   final Color textPrimary;
@@ -125,7 +120,6 @@ class AppColors extends ThemeExtension<AppColors> {
     Color? successSubtle,
     Color? dangerRed,
     Color? warning,
-    Color? accentBlue,
     Color? textPrimary,
     Color? textBody,
     Color? textSecondary,
@@ -146,7 +140,6 @@ class AppColors extends ThemeExtension<AppColors> {
       successSubtle: successSubtle ?? this.successSubtle,
       dangerRed: dangerRed ?? this.dangerRed,
       warning: warning ?? this.warning,
-      accentBlue: accentBlue ?? this.accentBlue,
       textPrimary: textPrimary ?? this.textPrimary,
       textBody: textBody ?? this.textBody,
       textSecondary: textSecondary ?? this.textSecondary,
@@ -173,7 +166,6 @@ class AppColors extends ThemeExtension<AppColors> {
       successSubtle: mix(successSubtle, other.successSubtle),
       dangerRed: mix(dangerRed, other.dangerRed),
       warning: mix(warning, other.warning),
-      accentBlue: mix(accentBlue, other.accentBlue),
       textPrimary: mix(textPrimary, other.textPrimary),
       textBody: mix(textBody, other.textBody),
       textSecondary: mix(textSecondary, other.textSecondary),

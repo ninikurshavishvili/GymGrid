@@ -53,9 +53,10 @@ abstract final class AppTheme {
       surfaceTint: Colors.transparent,
     );
 
+    // Filled like the app's cards, with no outline. The caret shows focus.
     final inputBorder = OutlineInputBorder(
-      borderRadius: BorderRadius.circular(AppRadius.lg),
-      borderSide: BorderSide(color: colors.borderDefault),
+      borderRadius: BorderRadius.circular(AppRadius.xl),
+      borderSide: BorderSide.none,
     );
 
     return ThemeData(
@@ -100,10 +101,10 @@ abstract final class AppTheme {
           splashFactory: NoSplash.splashFactory,
         ),
       ),
-      // Text buttons read as links, in the system's blue.
+      // Text buttons read as links, in the app's one accent colour.
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
-          foregroundColor: colors.accentBlue,
+          foregroundColor: colors.actionGreen,
           textStyle: text.bodyStrong,
           splashFactory: NoSplash.splashFactory,
         ),
@@ -117,13 +118,12 @@ abstract final class AppTheme {
       inputDecorationTheme: InputDecorationThemeData(
         filled: true,
         fillColor: colors.bgSecondary,
-        contentPadding: const EdgeInsets.all(AppSpacing.md),
-        hintStyle: text.body.copyWith(color: colors.textMuted),
+        contentPadding: const EdgeInsets.all(AppSpacing.lg),
+        hintStyle: text.body.copyWith(color: colors.textSecondary),
+        counterStyle: text.footnote.copyWith(color: colors.textSecondary),
         border: inputBorder,
         enabledBorder: inputBorder,
-        focusedBorder: inputBorder.copyWith(
-          borderSide: BorderSide(color: colors.actionGreenBorder),
-        ),
+        focusedBorder: inputBorder,
       ),
       textSelectionTheme: TextSelectionThemeData(
         cursorColor: colors.actionGreenBorder,

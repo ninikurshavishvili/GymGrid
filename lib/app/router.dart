@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
+import '../features/check_in/presentation/check_in_cubit.dart';
 import '../features/check_in/presentation/check_in_screen.dart';
 import '../features/progress/presentation/day_detail_screen.dart';
 import '../features/progress/presentation/home_cubit.dart';
@@ -57,7 +60,25 @@ GoRouter createRouter() {
         routes: [
           GoRoute(
             path: AppRoutes._checkInSegment,
-            builder: (context, state) => const CheckInScreen(),
+            // A modal, like an iOS compose sheet: this is a task to finish
+            // or cancel, not a place to go.
+            pageBuilder: (context, state) => MaterialPage(
+              key: state.pageKey,
+              fullscreenDialog: true,
+              child: BlocProvider(
+                create: (_) {
+                  final cubit = CheckInCubit(
+                    saveCheckIn: getIt(),
+                    getCheckIn: getIt(),
+                    photoPicker: getIt(),
+                    clock: getIt(),
+                  );
+                  unawaited(cubit.load());
+                  return cubit;
+                },
+                child: const CheckInScreen(),
+              ),
+            ),
           ),
           GoRoute(
             path: AppRoutes._dayDetailSegment,

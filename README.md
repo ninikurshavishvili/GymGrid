@@ -60,7 +60,7 @@ _Screenshots coming soon._
 - [x] Domain layer: check-ins, streaks and at-risk state
 - [x] Data layer: SQLite (drift) and photo storage
 - [x] Home screen: streak cards and year grid
-- [ ] Check-in flow with the camera
+- [x] Check-in flow with the camera
 - [ ] Day detail and delete
 - [ ] Android build and testing
 - [ ] App icon and screenshots

@@ -15,6 +15,7 @@ import '../features/check_in/domain/repositories/photo_locator.dart';
 import '../features/check_in/domain/usecases/delete_check_in.dart';
 import '../features/check_in/domain/usecases/get_check_in.dart';
 import '../features/check_in/domain/usecases/save_check_in.dart';
+import '../features/check_in/presentation/photo_picker.dart';
 import '../features/progress/domain/usecases/watch_progress.dart';
 
 /// The app's service locator, the composition root for dependencies.
@@ -86,6 +87,7 @@ Future<void> registerDependencies({
     ..registerSingleton<PhotoStore>(photoStore)
     ..registerSingleton<PhotoLocator>(photoStore)
     ..registerSingleton<CheckInRepository>(repository)
+    ..registerLazySingleton<PhotoPicker>(PhotoPicker.new)
     ..registerLazySingleton<SaveCheckIn>(
       () => SaveCheckIn(repository: getIt(), clock: getIt()),
     )

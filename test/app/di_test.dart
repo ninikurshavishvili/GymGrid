@@ -12,6 +12,7 @@ import 'package:gym_grid/features/check_in/domain/repositories/photo_locator.dar
 import 'package:gym_grid/features/check_in/domain/usecases/delete_check_in.dart';
 import 'package:gym_grid/features/check_in/domain/usecases/get_check_in.dart';
 import 'package:gym_grid/features/check_in/domain/usecases/save_check_in.dart';
+import 'package:gym_grid/features/check_in/presentation/photo_picker.dart';
 import 'package:gym_grid/features/progress/domain/usecases/watch_progress.dart';
 import 'package:path/path.dart' as p;
 
@@ -58,6 +59,12 @@ void main() {
     await register();
 
     expect(getIt<PhotoLocator>(), same(getIt<PhotoStore>()));
+  });
+
+  test('provides the photo picker', () async {
+    await register();
+
+    expect(getIt<PhotoPicker>(), isA<PhotoPicker>());
   });
 
   test('wires the read and delete use cases to the repository', () async {
