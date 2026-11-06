@@ -4,16 +4,33 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gym_grid/app/app.dart';
+import 'package:gym_grid/app/di.dart';
 import 'package:gym_grid/app/router.dart';
+import 'package:gym_grid/core/date/clock.dart';
+import 'package:gym_grid/features/check_in/domain/repositories/check_in_repository.dart';
+import 'package:gym_grid/features/check_in/domain/usecases/save_check_in.dart';
 import 'package:gym_grid/features/check_in/presentation/check_in_screen.dart';
 import 'package:gym_grid/features/progress/presentation/day_detail_screen.dart';
 import 'package:gym_grid/features/progress/presentation/home_screen.dart';
+import 'package:mocktail/mocktail.dart';
+
+class _MockCheckInRepository extends Mock implements CheckInRepository {}
 
 void main() {
   late GoRouter router;
 
-  setUp(() => router = createRouter());
-  tearDown(() => router.dispose());
+  setUp(() {
+    // Route builders take their dependencies from the container.
+    getIt.registerSingleton(
+      SaveCheckIn(repository: _MockCheckInRepository(), clock: const Clock()),
+    );
+    router = createRouter();
+  });
+
+  tearDown(() async {
+    router.dispose();
+    await getIt.reset();
+  });
 
   Future<void> pumpApp(WidgetTester tester) async {
     await tester.pumpWidget(GymGridApp(router: router));

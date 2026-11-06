@@ -1,8 +1,11 @@
+import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 
 import '../../../app/router.dart';
 import '../../../app/theme/app_theme.dart';
@@ -11,11 +14,18 @@ import '../../../core/widgets/chip_selector.dart';
 import '../../../core/widgets/photo_frame.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/streak_card.dart';
+import '../../check_in/domain/entities/workout_type.dart';
+import '../../check_in/domain/usecases/save_check_in.dart';
 
 /// Placeholder that previews the shared widgets. Replaced by the streak
 /// cards and year grid in UI step 3.
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  const HomeScreen({this.saveSampleCheckIn, super.key});
+
+  /// Saves a generated photo as today's check-in, so storage can be tried
+  /// before the camera exists. Temporary and debug-only: the router passes
+  /// null in release builds, and the button goes away with this gallery.
+  final SaveCheckIn? saveSampleCheckIn;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -26,13 +36,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
   String? _workout = _workouts.first;
   bool _isSaving = false;
-  ImageProvider? _samplePhoto;
+  bool _isSavingSample = false;
+  Uint8List? _samplePng;
 
   @override
   void initState() {
     super.initState();
-    _drawSamplePhoto().then((photo) {
-      if (mounted) setState(() => _samplePhoto = photo);
+    _drawSamplePng().then((png) {
+      if (mounted) setState(() => _samplePng = png);
     }).ignore();
   }
 
@@ -42,9 +53,34 @@ class _HomeScreenState extends State<HomeScreen> {
       ..showSnackBar(SnackBar(content: Text(message)));
   }
 
+  Future<void> _saveSampleCheckIn(
+    SaveCheckIn saveCheckIn,
+    Uint8List png,
+  ) async {
+    setState(() => _isSavingSample = true);
+    try {
+      // Stands in for the camera's temporary file until step 4.
+      final temporary = await getTemporaryDirectory();
+      final photo = await File(
+        p.join(temporary.path, 'sample_check_in.png'),
+      ).writeAsBytes(png);
+      final checkIn = await saveCheckIn(
+        sourcePhotoPath: photo.path,
+        workoutType: WorkoutType.strength,
+        note: 'Sample check-in',
+      );
+      if (mounted) _toast('Saved ${checkIn.date} as ${checkIn.photoPath}');
+    } on Exception catch (error) {
+      if (mounted) _toast('Not saved: $error');
+    } finally {
+      if (mounted) setState(() => _isSavingSample = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final text = context.textStyles;
+    final samplePng = _samplePng;
 
     return Scaffold(
       body: SafeArea(
@@ -52,6 +88,17 @@ class _HomeScreenState extends State<HomeScreen> {
           padding: const EdgeInsets.all(AppSpacing.xl),
           children: [
             Text('Shared widgets', style: text.header),
+            if (widget.saveSampleCheckIn case final saveCheckIn?) ...[
+              const _Section('Storage (debug)'),
+              PrimaryButton(
+                label: 'Save sample check-in',
+                icon: Icons.save_alt,
+                isLoading: _isSavingSample,
+                onPressed: samplePng == null
+                    ? null
+                    : () => _saveSampleCheckIn(saveCheckIn, samplePng),
+              ),
+            ],
             const _Section('StreakCard'),
             const Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -131,7 +178,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             const SizedBox(height: AppSpacing.md),
             PhotoFrame(
-              image: _samplePhoto,
+              image: samplePng == null ? null : MemoryImage(samplePng),
               semanticLabel: 'Sample check-in photo',
               caption: '07:42 AM',
               captionAlignment: AlignmentDirectional.topStart,
@@ -185,8 +232,9 @@ class _Section extends StatelessWidget {
   }
 }
 
-/// Paints a gradient stand-in for a camera photo until check-in exists.
-Future<ImageProvider> _drawSamplePhoto() async {
+/// Paints a gradient stand-in for a camera photo until check-in exists, and
+/// encodes it as PNG.
+Future<Uint8List> _drawSamplePng() async {
   const width = 800;
   const height = 600;
   final recorder = ui.PictureRecorder();
@@ -201,5 +249,5 @@ Future<ImageProvider> _drawSamplePhoto() async {
   final image = await recorder.endRecording().toImage(width, height);
   final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
   image.dispose();
-  return MemoryImage(bytes!.buffer.asUint8List());
+  return bytes!.buffer.asUint8List();
 }

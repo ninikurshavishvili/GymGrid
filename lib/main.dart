@@ -5,9 +5,11 @@ import 'app/di.dart';
 import 'app/font_licenses.dart';
 import 'app/router.dart';
 
-void main() {
+Future<void> main() async {
+  // Platform plugins, such as path_provider, need the binding before
+  // `runApp`.
   WidgetsFlutterBinding.ensureInitialized();
   registerFontLicenses();
-  configureDependencies();
+  await configureDependencies();
   runApp(GymGridApp(router: createRouter()));
 }

@@ -58,7 +58,7 @@ _Screenshots coming soon._
 - [x] Design tokens, type scale and bundled fonts
 - [x] Shared widgets: cards, buttons, chip selector, photo frame
 - [x] Domain layer: check-ins, streaks and at-risk state
-- [ ] Data layer: SQLite (drift) and photo storage
+- [x] Data layer: SQLite (drift) and photo storage
 - [ ] Home screen: streak cards and year grid
 - [ ] Check-in flow with the camera
 - [ ] Day detail and delete
