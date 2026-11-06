@@ -1,5 +1,7 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:gym_grid/app/theme/app_theme.dart';
 import 'package:gym_grid/core/widgets/primary_button.dart';
 
 import '../../helpers/pump_themed.dart';
@@ -46,10 +48,25 @@ void main() {
 
     await tester.tap(find.byType(PrimaryButton), warnIfMissed: false);
 
-    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    expect(find.byType(CupertinoActivityIndicator), findsOneWidget);
     expect(find.text('Save check-in'), findsOneWidget);
     expect(presses, 0);
   });
+
+  for (final (tone, expected) in [
+    (PrimaryButtonTone.action, AppColors.dark.onAction),
+    (PrimaryButtonTone.danger, AppColors.dark.textPrimary),
+  ]) {
+    testWidgets('$tone labels keep their contrast', (tester) async {
+      await pumpThemed(
+        tester,
+        PrimaryButton(label: 'Go', tone: tone, onPressed: () {}),
+      );
+
+      final style = DefaultTextStyle.of(tester.element(find.text('Go'))).style;
+      expect(style.color, expected);
+    });
+  }
 
   testWidgets('a long label wraps at 3x text size instead of overflowing', (
     tester,

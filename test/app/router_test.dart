@@ -8,22 +8,29 @@ import 'package:gym_grid/app/di.dart';
 import 'package:gym_grid/app/router.dart';
 import 'package:gym_grid/core/date/clock.dart';
 import 'package:gym_grid/features/check_in/domain/repositories/check_in_repository.dart';
-import 'package:gym_grid/features/check_in/domain/usecases/save_check_in.dart';
+import 'package:gym_grid/features/check_in/domain/repositories/photo_locator.dart';
 import 'package:gym_grid/features/check_in/presentation/check_in_screen.dart';
+import 'package:gym_grid/features/progress/domain/usecases/watch_progress.dart';
 import 'package:gym_grid/features/progress/presentation/day_detail_screen.dart';
 import 'package:gym_grid/features/progress/presentation/home_screen.dart';
 import 'package:mocktail/mocktail.dart';
 
 class _MockCheckInRepository extends Mock implements CheckInRepository {}
 
+class _MockPhotoLocator extends Mock implements PhotoLocator {}
+
 void main() {
   late GoRouter router;
 
   setUp(() {
     // Route builders take their dependencies from the container.
-    getIt.registerSingleton(
-      SaveCheckIn(repository: _MockCheckInRepository(), clock: const Clock()),
-    );
+    final repository = _MockCheckInRepository();
+    when(repository.watchAll).thenAnswer((_) => Stream.value(const []));
+    getIt
+      ..registerSingleton(
+        WatchProgress(repository: repository, clock: const Clock()),
+      )
+      ..registerSingleton<PhotoLocator>(_MockPhotoLocator());
     router = createRouter();
   });
 

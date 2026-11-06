@@ -6,13 +6,13 @@ import 'package:gym_grid/core/widgets/streak_card.dart';
 import '../../helpers/pump_themed.dart';
 
 void main() {
-  testWidgets('shows the uppercased label and the day count', (tester) async {
+  testWidgets('shows the label and the day count', (tester) async {
     await pumpThemed(
       tester,
       const StreakCard(label: 'Longest streak', days: 42),
     );
 
-    expect(find.text('LONGEST STREAK', findRichText: true), findsOneWidget);
+    expect(find.text('Longest streak', findRichText: true), findsOneWidget);
     expect(find.text('42 days', findRichText: true), findsOneWidget);
   });
 
@@ -46,7 +46,7 @@ void main() {
     );
 
     final label = tester.widget<RichText>(
-      find.text('AT RISK', findRichText: true),
+      find.text('At risk', findRichText: true),
     );
     expect(label.text.style?.color, AppColors.dark.warning);
     expect(

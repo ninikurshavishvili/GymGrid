@@ -1,9 +1,10 @@
 import 'dart:ui';
 
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 
 import '../../app/theme/app_theme.dart';
-import 'bordered_card.dart';
+import 'surface_card.dart';
 
 /// A button drawn over the bottom-end corner of a [PhotoFrame], e.g. Retake.
 @immutable
@@ -178,7 +179,7 @@ class _UnavailablePhoto extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
-              Icons.broken_image_outlined,
+              CupertinoIcons.exclamationmark_triangle,
               size: MediaQuery.textScalerOf(context).scale(20),
               color: colors.textSecondary,
             ),
@@ -205,7 +206,7 @@ class _EmptyFrame extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    return BorderedCard.dashed(
+    return SurfaceCard.dashed(
       onTap: onTap,
       semanticLabel: label,
       padding: EdgeInsets.zero,
@@ -225,7 +226,7 @@ class _EmptyFrame extends StatelessWidget {
                   child: Padding(
                     padding: const EdgeInsets.all(AppSpacing.sm),
                     child: Icon(
-                      Icons.photo_camera_outlined,
+                      CupertinoIcons.camera,
                       size: MediaQuery.textScalerOf(context).scale(20),
                       color: colors.textSecondary,
                     ),

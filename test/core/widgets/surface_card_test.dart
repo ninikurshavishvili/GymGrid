@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:gym_grid/core/widgets/bordered_card.dart';
 import 'package:gym_grid/core/widgets/dashed_border_painter.dart';
+import 'package:gym_grid/core/widgets/surface_card.dart';
 
 import '../../helpers/pump_themed.dart';
 
 void main() {
   testWidgets('renders its child', (tester) async {
-    await pumpThemed(tester, const BorderedCard(child: Text('Hello')));
+    await pumpThemed(tester, const SurfaceCard(child: Text('Hello')));
 
     expect(find.text('Hello'), findsOneWidget);
   });
@@ -16,10 +16,10 @@ void main() {
     var taps = 0;
     await pumpThemed(
       tester,
-      BorderedCard(onTap: () => taps++, child: const Text('Tap me')),
+      SurfaceCard(onTap: () => taps++, child: const Text('Tap me')),
     );
 
-    await tester.tap(find.byType(BorderedCard));
+    await tester.tap(find.byType(SurfaceCard));
 
     expect(taps, 1);
   });
@@ -30,7 +30,7 @@ void main() {
     final semantics = tester.ensureSemantics();
     await pumpThemed(
       tester,
-      BorderedCard(
+      SurfaceCard(
         onTap: () {},
         semanticLabel: 'Checked in today',
         child: const Text('ignored by screen readers'),
@@ -38,7 +38,7 @@ void main() {
     );
 
     expect(
-      tester.getSemantics(find.byType(BorderedCard)),
+      tester.getSemantics(find.byType(SurfaceCard)),
       isSemantics(
         label: 'Checked in today',
         isButton: true,
@@ -49,8 +49,17 @@ void main() {
     semantics.dispose();
   });
 
+  testWidgets('has no outline unless given a colour', (tester) async {
+    await pumpThemed(tester, const SurfaceCard(child: Text('Plain')));
+
+    final shape =
+        tester.widget<Material>(find.byType(Material).last).shape
+            as RoundedRectangleBorder;
+    expect(shape.side, BorderSide.none);
+  });
+
   testWidgets('dashed variant paints a dashed outline', (tester) async {
-    await pumpThemed(tester, const BorderedCard.dashed(child: Text('Empty')));
+    await pumpThemed(tester, const SurfaceCard.dashed(child: Text('Empty')));
 
     final painters = tester
         .widgetList<CustomPaint>(find.byType(CustomPaint))

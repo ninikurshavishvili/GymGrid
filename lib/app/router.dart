@@ -1,10 +1,10 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
-import '../features/check_in/domain/usecases/save_check_in.dart';
 import '../features/check_in/presentation/check_in_screen.dart';
 import '../features/progress/presentation/day_detail_screen.dart';
+import '../features/progress/presentation/home_cubit.dart';
 import '../features/progress/presentation/home_screen.dart';
 import 'di.dart';
 
@@ -48,10 +48,11 @@ GoRouter createRouter() {
     routes: [
       GoRoute(
         path: AppRoutes.home,
-        builder: (context, state) => HomeScreen(
-          // `kDebugMode` is a compile-time constant, so release builds drop
-          // this lookup and the button with it.
-          saveSampleCheckIn: kDebugMode ? getIt<SaveCheckIn>() : null,
+        builder: (context, state) => BlocProvider(
+          // BlocProvider owns the Cubit and closes it with the screen, like
+          // a SwiftUI `@StateObject`.
+          create: (_) => HomeCubit(watchProgress: getIt())..watch(),
+          child: HomeScreen(photoLocator: getIt()),
         ),
         routes: [
           GoRoute(

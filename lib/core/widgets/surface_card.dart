@@ -3,13 +3,15 @@ import 'package:flutter/material.dart';
 import '../../app/theme/app_theme.dart';
 import 'dashed_border_painter.dart';
 
-/// The design's basic surface: a rounded, outlined panel on [AppColors.bgSecondary].
+/// The app's basic surface: a rounded panel on [AppColors.bgSecondary], like
+/// a section of an iOS inset grouped list. Elevation comes from the fill, so
+/// there's no outline unless [borderColor] asks for one.
 ///
 /// Pass [onTap] to make the whole card a button; [semanticLabel] then
-/// describes it to screen readers. Use [BorderedCard.dashed] for empty and
+/// describes it to screen readers. Use [SurfaceCard.dashed] for empty and
 /// placeholder states.
-class BorderedCard extends StatelessWidget {
-  const BorderedCard({
+class SurfaceCard extends StatelessWidget {
+  const SurfaceCard({
     required this.child,
     super.key,
     this.padding = const EdgeInsets.all(AppSpacing.md),
@@ -19,7 +21,7 @@ class BorderedCard extends StatelessWidget {
     this.semanticLabel,
   }) : _dashed = false;
 
-  const BorderedCard.dashed({
+  const SurfaceCard.dashed({
     required this.child,
     super.key,
     this.padding = const EdgeInsets.all(AppSpacing.xl),
@@ -32,7 +34,8 @@ class BorderedCard extends StatelessWidget {
   final Widget child;
   final EdgeInsetsGeometry padding;
 
-  /// Defaults to [AppColors.borderDefault].
+  /// An outline colour. Plain cards have none by default; dashed cards
+  /// default to [AppColors.borderDefault].
   final Color? borderColor;
 
   /// Defaults to [AppColors.bgSecondary], or half of it for dashed cards.
@@ -46,8 +49,8 @@ class BorderedCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    final border = borderColor ?? colors.borderDefault;
-    final radius = BorderRadius.circular(AppRadius.lg);
+    final borderColor = this.borderColor;
+    final radius = BorderRadius.circular(AppRadius.xl);
 
     // Material + InkWell gives the tap ripple clipped to the card's shape,
     // the Flutter counterpart of a highlighted UIControl state.
@@ -59,7 +62,9 @@ class BorderedCard extends StatelessWidget {
               : colors.bgSecondary),
       shape: RoundedRectangleBorder(
         borderRadius: radius,
-        side: _dashed ? BorderSide.none : BorderSide(color: border),
+        side: _dashed || borderColor == null
+            ? BorderSide.none
+            : BorderSide(color: borderColor),
       ),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
@@ -71,8 +76,8 @@ class BorderedCard extends StatelessWidget {
     if (_dashed) {
       card = CustomPaint(
         foregroundPainter: DashedBorderPainter(
-          color: border,
-          radius: AppRadius.lg,
+          color: borderColor ?? colors.borderDefault,
+          radius: AppRadius.xl,
         ),
         child: card,
       );

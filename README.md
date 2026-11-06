@@ -55,11 +55,11 @@ _Screenshots coming soon._
 
 ## Roadmap
 
-- [x] Design tokens, type scale and bundled fonts
+- [x] Design tokens and type scale
 - [x] Shared widgets: cards, buttons, chip selector, photo frame
 - [x] Domain layer: check-ins, streaks and at-risk state
 - [x] Data layer: SQLite (drift) and photo storage
-- [ ] Home screen: streak cards and year grid
+- [x] Home screen: streak cards and year grid
 - [ ] Check-in flow with the camera
 - [ ] Day detail and delete
 - [ ] Android build and testing
@@ -133,8 +133,9 @@ to catch overflow, and an architecture test for layer boundaries.
 
 ## Design
 
-Designed in Figma: dark theme, GitHub-inspired palette, Inter and
-JetBrains Mono.
+Minimal and iOS-first: Apple's dark system colours on true black, San
+Francisco with Dynamic Type sizes, a collapsing large title and no Material
+ripples. An earlier exploration is in
 [Figma](https://www.figma.com/design/ytBF3uDE4lYGzzokDuDHLD/GymGrid?node-id=17-45&t=ZwRRKkZXZ6xN7iL8-1).
 
 ## Author
