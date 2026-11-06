@@ -1,4 +1,4 @@
-package com.example.gym_grid
+package com.ninikurshavishvili.gymgrid
 
 import io.flutter.embedding.android.FlutterActivity
 
