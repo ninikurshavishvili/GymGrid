@@ -192,7 +192,7 @@ void main() {
           CheckIn(
             id: '$day',
             date: day,
-            photoPath: 'photos/$day.jpg',
+            photoPaths: ['photos/$day.jpg'],
             workoutType: WorkoutType.strength,
             createdAt: day.toLocalDateTime(),
           ),

@@ -9,6 +9,12 @@ abstract final class AppSpacing {
   static const double xxl = 24;
 }
 
+/// How long interface animations take.
+abstract final class AppDurations {
+  /// Selection changes and elements appearing.
+  static const Duration quick = Duration(milliseconds: 220);
+}
+
 /// Corner radii, in logical pixels.
 abstract final class AppRadius {
   /// Badges.

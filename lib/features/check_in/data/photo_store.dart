@@ -6,8 +6,8 @@ import '../domain/repositories/photo_locator.dart';
 
 /// Keeps check-in photos as files in the app's documents directory.
 ///
-/// Each photo is stored as `photos/<check-in id><extension>`, and callers
-/// only ever hold that relative path: on iOS the container's absolute path
+/// Each photo is stored as `photos/<photo id><extension>`, and callers only
+/// ever hold that relative path: on iOS the container's absolute path
 /// changes across app updates, so an absolute path would go stale.
 ///
 /// Every method that takes a path accepts exactly `photos/<file name>` and
@@ -25,8 +25,8 @@ class PhotoStore implements PhotoLocator {
   Directory get _folder =>
       Directory(p.join(_documentsDirectory.path, _folderName));
 
-  /// Copies the photo at [sourcePath] into the store as the photo for the
-  /// check-in [id], and returns its relative path, e.g. `photos/<id>.jpg`.
+  /// Copies the photo at [sourcePath] into the store under [id], and returns
+  /// its relative path, e.g. `photos/<id>.jpg`.
   ///
   /// Keeps the source's extension, lowercased, or uses `.jpg` if it has
   /// none. The source is left in place, so a failed save can be retried.

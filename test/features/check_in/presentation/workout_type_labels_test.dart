@@ -11,4 +11,17 @@ void main() {
       'Other',
     ]);
   });
+
+  test('every workout type has its own prompt and icon', () {
+    const types = WorkoutType.values;
+
+    expect(types.map((type) => type.notePrompt).toSet(), hasLength(4));
+    expect(types.map((type) => type.icon).toSet(), hasLength(4));
+  });
+
+  test('every workout type offers note suggestions', () {
+    for (final type in WorkoutType.values) {
+      expect(type.noteSuggestions, isNotEmpty, reason: '$type');
+    }
+  });
 }

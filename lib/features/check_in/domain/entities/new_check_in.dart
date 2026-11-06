@@ -6,20 +6,20 @@ import 'workout_type.dart';
 /// A check-in that hasn't been stored yet, passed to
 /// `CheckInRepository.save`.
 ///
-/// It has no id yet, and its photo is [sourcePhotoPath]: an absolute path
-/// to a file such as the camera's temporary photo, which the repository
-/// copies into permanent storage.
+/// It has no id yet, and its photos are [sourcePhotoPaths]: absolute paths
+/// to files such as the camera's temporary photo, which the repository
+/// copies into permanent storage. The first becomes the cover.
 class NewCheckIn extends Equatable {
   const NewCheckIn({
     required this.date,
-    required this.sourcePhotoPath,
+    required this.sourcePhotoPaths,
     required this.workoutType,
     required this.createdAt,
     this.note,
   });
 
   final CalendarDay date;
-  final String sourcePhotoPath;
+  final List<String> sourcePhotoPaths;
   final WorkoutType workoutType;
   final String? note;
   final DateTime createdAt;
@@ -27,7 +27,7 @@ class NewCheckIn extends Equatable {
   @override
   List<Object?> get props => [
     date,
-    sourcePhotoPath,
+    sourcePhotoPaths,
     workoutType,
     note,
     createdAt,

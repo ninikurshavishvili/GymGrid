@@ -11,9 +11,14 @@ import 'package:gym_grid/features/check_in/data/local_check_in_repository.dart';
 import 'package:gym_grid/features/check_in/data/photo_store.dart';
 import 'package:gym_grid/features/check_in/data/uuid.dart';
 import 'package:gym_grid/features/check_in/domain/entities/check_in.dart';
+import 'package:gym_grid/features/check_in/domain/entities/check_in_edit.dart';
+import 'package:gym_grid/features/check_in/domain/entities/check_in_photo.dart';
 import 'package:gym_grid/features/check_in/domain/entities/new_check_in.dart';
 import 'package:gym_grid/features/check_in/domain/entities/workout_type.dart';
 import 'package:path/path.dart' as p;
+
+/// A photo stored under its own UUID.
+final _storedPhoto = RegExp(r'^photos/[0-9a-f]{8}-[0-9a-f-]{27}\.\w+$');
 
 void main() {
   // A real in-memory database and real files in a temporary folder that
@@ -60,7 +65,7 @@ void main() {
     return repository.save(
       NewCheckIn(
         date: date,
-        sourcePhotoPath: sourcePhotoPath ?? await cameraPhoto(),
+        sourcePhotoPaths: [sourcePhotoPath ?? await cameraPhoto()],
         workoutType: workoutType,
         note: note,
         createdAt: date.toLocalDateTime().add(const Duration(hours: 7)),
@@ -77,6 +82,11 @@ void main() {
         p.relative(file.path, from: documents.path),
     };
   }
+
+  /// What the stored photo at [photoPath] contains. Test photos hold their
+  /// own file name.
+  String contentsOf(String photoPath) =>
+      File(p.join(documents.path, photoPath)).readAsStringSync();
 
   final oct4 = CalendarDay(2026, 10, 4);
   final oct5 = CalendarDay(2026, 10, 5);
@@ -97,11 +107,56 @@ void main() {
       expect(saved.workoutType, WorkoutType.cardio);
       expect(saved.note, 'Intervals');
       expect(saved.createdAt, DateTime(2026, 10, 5, 7));
-      expect(saved.photoPath, 'photos/${saved.id}.jpg');
-      expect(storedPhotos(), {saved.photoPath});
+      expect(saved.photoPaths, hasLength(1));
+      expect(saved.coverPhotoPath, matches(_storedPhoto));
+      expect(storedPhotos(), {saved.coverPhotoPath});
       expect(await repository.findByDate(oct5), saved);
       expect(File(source).existsSync(), isTrue);
     });
+
+    test('stores several photos in order, the first as the cover', () async {
+      final saved = await repository.save(
+        NewCheckIn(
+          date: oct5,
+          sourcePhotoPaths: [
+            await cameraPhoto('first.jpg'),
+            await cameraPhoto('second.png'),
+          ],
+          workoutType: WorkoutType.strength,
+          createdAt: DateTime(2026, 10, 5, 7),
+        ),
+      );
+
+      expect(saved.photoPaths, hasLength(2));
+      expect(saved.photoPaths, everyElement(matches(_storedPhoto)));
+      expect(storedPhotos(), saved.photoPaths.toSet());
+      expect(contentsOf(saved.photoPaths.first), 'first.jpg');
+      expect(contentsOf(saved.photoPaths.last), 'second.png');
+      expect(await repository.findByDate(oct5), saved);
+    });
+
+    test(
+      'removes the copies already made when a later photo is missing',
+      () async {
+        final first = await cameraPhoto('first.jpg');
+        final missing = p.join(container.path, 'tmp', 'missing.jpg');
+
+        await expectLater(
+          repository.save(
+            NewCheckIn(
+              date: oct5,
+              sourcePhotoPaths: [first, missing],
+              workoutType: WorkoutType.strength,
+              createdAt: DateTime(2026, 10, 5, 7),
+            ),
+          ),
+          throwsA(isA<StorageFailure>()),
+        );
+
+        expect(await repository.findByDate(oct5), isNull);
+        expect(storedPhotos(), isEmpty);
+      },
+    );
 
     test('gives each check-in a new UUID', () async {
       final first = await save(oct4);
@@ -121,7 +176,7 @@ void main() {
       expect(second.id, isNot(first.id));
       expect(await repository.findByDate(oct5), second);
       expect(await repository.watchAll().first, [second]);
-      expect(storedPhotos(), {second.photoPath});
+      expect(storedPhotos(), {second.coverPhotoPath});
     });
 
     test('leaves other days alone', () async {
@@ -131,7 +186,7 @@ void main() {
       await save(oct5);
 
       expect(await repository.findByDate(oct4), other);
-      expect(storedPhotos(), contains(other.photoPath));
+      expect(storedPhotos(), contains(other.coverPhotoPath));
     });
 
     test('keeps the earlier check-in and removes the copy when the database '
@@ -151,7 +206,7 @@ void main() {
       );
 
       expect(await repository.findByDate(oct5), earlier);
-      expect(storedPhotos(), {earlier.photoPath});
+      expect(storedPhotos(), {earlier.coverPhotoPath});
       expect(File(source).existsSync(), isTrue);
     });
 
@@ -192,7 +247,7 @@ void main() {
 
       expect(await repository.findByDate(oct5), second);
       // Left for the launch cleanup.
-      expect(storedPhotos(), {first.photoPath, second.photoPath});
+      expect(storedPhotos(), {first.coverPhotoPath, second.coverPhotoPath});
     });
   });
 
@@ -258,7 +313,217 @@ void main() {
     });
   });
 
+  group('update', () {
+    test('changes the workout type and note, keeping the rest', () async {
+      final checkIn = await save(oct5, note: 'Morning');
+
+      final updated = await repository.update(
+        CheckInEdit(
+          id: checkIn.id,
+          photos: [StoredPhoto(checkIn.coverPhotoPath)],
+          workoutType: WorkoutType.cardio,
+          note: 'Evening',
+        ),
+      );
+
+      expect(updated.id, checkIn.id);
+      expect(updated.date, checkIn.date);
+      expect(updated.createdAt, checkIn.createdAt);
+      expect(updated.photoPaths, checkIn.photoPaths);
+      expect(updated.workoutType, WorkoutType.cardio);
+      expect(updated.note, 'Evening');
+      expect(await repository.findByDate(oct5), updated);
+    });
+
+    test('can remove the note', () async {
+      final checkIn = await save(oct5, note: 'Morning');
+
+      final updated = await repository.update(
+        CheckInEdit(
+          id: checkIn.id,
+          photos: [StoredPhoto(checkIn.coverPhotoPath)],
+          workoutType: checkIn.workoutType,
+        ),
+      );
+
+      expect(updated.note, isNull);
+    });
+
+    test('adds a picked photo after the stored ones', () async {
+      final checkIn = await save(oct5);
+
+      final updated = await repository.update(
+        CheckInEdit(
+          id: checkIn.id,
+          photos: [
+            StoredPhoto(checkIn.coverPhotoPath),
+            PickedPhoto(await cameraPhoto('added.jpg')),
+          ],
+          workoutType: checkIn.workoutType,
+        ),
+      );
+
+      expect(updated.photoPaths, hasLength(2));
+      expect(updated.coverPhotoPath, checkIn.coverPhotoPath);
+      expect(contentsOf(updated.photoPaths.last), 'added.jpg');
+      expect(storedPhotos(), updated.photoPaths.toSet());
+    });
+
+    test('keeps the order given, so a new photo can come first', () async {
+      final checkIn = await save(oct5);
+
+      final updated = await repository.update(
+        CheckInEdit(
+          id: checkIn.id,
+          photos: [
+            PickedPhoto(await cameraPhoto('new-cover.jpg')),
+            StoredPhoto(checkIn.coverPhotoPath),
+          ],
+          workoutType: checkIn.workoutType,
+        ),
+      );
+
+      expect(contentsOf(updated.coverPhotoPath), 'new-cover.jpg');
+      expect(updated.photoPaths.last, checkIn.coverPhotoPath);
+    });
+
+    test('deletes a stored photo the edit leaves out', () async {
+      final checkIn = await save(oct5);
+      final withTwo = await repository.update(
+        CheckInEdit(
+          id: checkIn.id,
+          photos: [
+            StoredPhoto(checkIn.coverPhotoPath),
+            PickedPhoto(await cameraPhoto('added.jpg')),
+          ],
+          workoutType: checkIn.workoutType,
+        ),
+      );
+
+      final updated = await repository.update(
+        CheckInEdit(
+          id: checkIn.id,
+          photos: [StoredPhoto(withTwo.photoPaths.last)],
+          workoutType: checkIn.workoutType,
+        ),
+      );
+
+      expect(updated.photoPaths, [withTwo.photoPaths.last]);
+      expect(storedPhotos(), {withTwo.photoPaths.last});
+    });
+
+    test('emits the change to anyone watching', () async {
+      final checkIn = await save(oct5);
+      final checkIns = StreamIterator(repository.watchAll());
+      addTearDown(checkIns.cancel);
+      expect(await checkIns.moveNext(), isTrue);
+
+      final updated = await repository.update(
+        CheckInEdit(
+          id: checkIn.id,
+          photos: [StoredPhoto(checkIn.coverPhotoPath)],
+          workoutType: WorkoutType.mobility,
+        ),
+      );
+
+      expect(await checkIns.moveNext(), isTrue);
+      expect(checkIns.current, [updated]);
+    });
+
+    test('fails for an unknown id and removes the copies it made', () async {
+      await expectLater(
+        repository.update(
+          CheckInEdit(
+            id: 'unknown',
+            photos: [PickedPhoto(await cameraPhoto())],
+            workoutType: WorkoutType.other,
+          ),
+        ),
+        throwsA(isA<StorageFailure>()),
+      );
+
+      expect(storedPhotos(), isEmpty);
+    });
+
+    test('changes nothing when a picked photo is missing', () async {
+      final checkIn = await save(oct5);
+      final missing = p.join(container.path, 'tmp', 'missing.jpg');
+
+      await expectLater(
+        repository.update(
+          CheckInEdit(
+            id: checkIn.id,
+            photos: [PickedPhoto(missing)],
+            workoutType: WorkoutType.other,
+          ),
+        ),
+        throwsA(isA<StorageFailure>()),
+      );
+
+      expect(await repository.findByDate(oct5), checkIn);
+      expect(storedPhotos(), checkIn.photoPaths.toSet());
+    });
+
+    test('keeps every photo when the database write fails', () async {
+      final checkIn = await save(oct5);
+      await database.customStatement(
+        'CREATE TRIGGER fail_updates BEFORE UPDATE ON check_ins '
+        "BEGIN SELECT RAISE(ABORT, 'disk full'); END",
+      );
+
+      await expectLater(
+        repository.update(
+          CheckInEdit(
+            id: checkIn.id,
+            // Leaves out the stored photo, which must survive the failure.
+            photos: [PickedPhoto(await cameraPhoto('added.jpg'))],
+            workoutType: WorkoutType.other,
+          ),
+        ),
+        throwsA(isA<StorageFailure>()),
+      );
+
+      expect(await repository.findByDate(oct5), checkIn);
+      expect(storedPhotos(), checkIn.photoPaths.toSet());
+    });
+
+    test('succeeds even if a removed photo cannot be deleted', () async {
+      repository = createRepository(_UndeletablePhotoStore(documents));
+      final checkIn = await save(oct5);
+
+      final updated = await repository.update(
+        CheckInEdit(
+          id: checkIn.id,
+          photos: [PickedPhoto(await cameraPhoto('new.jpg'))],
+          workoutType: checkIn.workoutType,
+        ),
+      );
+
+      expect(await repository.findByDate(oct5), updated);
+      // Left for the launch cleanup.
+      expect(storedPhotos(), hasLength(2));
+    });
+  });
+
   group('delete', () {
+    test('removes every photo of the check-in', () async {
+      final saved = await repository.save(
+        NewCheckIn(
+          date: oct5,
+          sourcePhotoPaths: [
+            await cameraPhoto('first.jpg'),
+            await cameraPhoto('second.jpg'),
+          ],
+          workoutType: WorkoutType.strength,
+          createdAt: DateTime(2026, 10, 5, 7),
+        ),
+      );
+
+      await repository.delete(saved.id);
+
+      expect(storedPhotos(), isEmpty);
+    });
+
     test('removes the check-in and its photo', () async {
       final kept = await save(oct4);
       final deleted = await save(oct5);
@@ -266,7 +531,7 @@ void main() {
       await repository.delete(deleted.id);
 
       expect(await repository.watchAll().first, [kept]);
-      expect(storedPhotos(), {kept.photoPath});
+      expect(storedPhotos(), {kept.coverPhotoPath});
     });
 
     test('does nothing for an unknown id', () async {
@@ -275,7 +540,7 @@ void main() {
       await repository.delete('unknown');
 
       expect(await repository.watchAll().first, [kept]);
-      expect(storedPhotos(), {kept.photoPath});
+      expect(storedPhotos(), {kept.coverPhotoPath});
     });
 
     test('succeeds even if the photo cannot be deleted', () async {
@@ -307,6 +572,24 @@ void main() {
   });
 
   group('deleteUnreferencedPhotos', () {
+    test('keeps every photo of a check-in, not only its cover', () async {
+      final saved = await repository.save(
+        NewCheckIn(
+          date: oct5,
+          sourcePhotoPaths: [
+            await cameraPhoto('first.jpg'),
+            await cameraPhoto('second.jpg'),
+          ],
+          workoutType: WorkoutType.strength,
+          createdAt: DateTime(2026, 10, 5, 7),
+        ),
+      );
+
+      await repository.deleteUnreferencedPhotos();
+
+      expect(storedPhotos(), saved.photoPaths.toSet());
+    });
+
     test('deletes only the photos no check-in refers to', () async {
       final kept = await save(oct5);
       final orphan = File(p.join(documents.path, 'photos', 'orphan.jpg'))
@@ -314,7 +597,7 @@ void main() {
 
       await repository.deleteUnreferencedPhotos();
 
-      expect(storedPhotos(), {kept.photoPath});
+      expect(storedPhotos(), {kept.coverPhotoPath});
       expect(orphan.existsSync(), isFalse);
     });
   });
@@ -323,8 +606,8 @@ void main() {
 /// Inserts a row whose workout type no version of the app writes.
 Future<void> _insertUnreadableRow(AppDatabase database) {
   return database.customStatement(
-    'INSERT INTO check_ins (id, day, photo_path, workout_type, created_at) '
-    "VALUES ('x', '2026-10-05', 'photos/x.jpg', 'yoga', "
+    'INSERT INTO check_ins (id, day, photo_paths, workout_type, created_at) '
+    "VALUES ('x', '2026-10-05', '[\"photos/x.jpg\"]', 'yoga', "
     "'2026-10-05T07:00:00.000')",
   );
 }
@@ -333,8 +616,8 @@ Future<void> _insertUnreadableRow(AppDatabase database) {
 /// database might hold.
 Future<void> _insertRowWithInvalidPhotoPath(AppDatabase database) {
   return database.customStatement(
-    'INSERT INTO check_ins (id, day, photo_path, workout_type, created_at) '
-    "VALUES ('x', '2026-10-05', '../outside.jpg', 'strength', "
+    'INSERT INTO check_ins (id, day, photo_paths, workout_type, created_at) '
+    "VALUES ('x', '2026-10-05', '[\"../outside.jpg\"]', 'strength', "
     "'2026-10-05T07:00:00.000')",
   );
 }

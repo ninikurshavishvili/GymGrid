@@ -23,7 +23,7 @@ void main() {
     CheckIn(
       id: '1',
       date: today,
-      photoPath: 'photos/1.jpg',
+      photoPaths: const ['photos/1.jpg'],
       workoutType: WorkoutType.strength,
       createdAt: DateTime(2026, 10, 5, 7, 42),
     ),

@@ -15,6 +15,8 @@ import '../features/check_in/domain/repositories/photo_locator.dart';
 import '../features/check_in/domain/usecases/delete_check_in.dart';
 import '../features/check_in/domain/usecases/get_check_in.dart';
 import '../features/check_in/domain/usecases/save_check_in.dart';
+import '../features/check_in/domain/usecases/update_check_in.dart';
+import '../features/check_in/domain/usecases/watch_check_in.dart';
 import '../features/check_in/presentation/photo_picker.dart';
 import '../features/progress/domain/usecases/watch_progress.dart';
 
@@ -91,7 +93,13 @@ Future<void> registerDependencies({
     ..registerLazySingleton<SaveCheckIn>(
       () => SaveCheckIn(repository: getIt(), clock: getIt()),
     )
+    ..registerLazySingleton<UpdateCheckIn>(
+      () => UpdateCheckIn(repository: getIt()),
+    )
     ..registerLazySingleton<GetCheckIn>(() => GetCheckIn(repository: getIt()))
+    ..registerLazySingleton<WatchCheckIn>(
+      () => WatchCheckIn(repository: getIt()),
+    )
     ..registerLazySingleton<DeleteCheckIn>(
       () => DeleteCheckIn(repository: getIt()),
     )

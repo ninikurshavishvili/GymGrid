@@ -74,6 +74,34 @@ void main() {
       expect(theme.splashFactory, NoSplash.splashFactory);
     });
 
+    testWidgets('animations stop when Reduce Motion is on', (tester) async {
+      late Duration normal;
+      late Duration reduced;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: theme,
+          home: Builder(
+            builder: (context) {
+              normal = context.motionDuration;
+              return MediaQuery(
+                data: MediaQuery.of(context).copyWith(disableAnimations: true),
+                child: Builder(
+                  builder: (context) {
+                    reduced = context.motionDuration;
+                    return const SizedBox.shrink();
+                  },
+                ),
+              );
+            },
+          ),
+        ),
+      );
+
+      expect(normal, AppDurations.quick);
+      expect(reduced, Duration.zero);
+    });
+
     testWidgets('exposes tokens through BuildContext', (tester) async {
       late AppColors colors;
       late AppTextStyles textStyles;

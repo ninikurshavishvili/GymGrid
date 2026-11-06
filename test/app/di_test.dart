@@ -6,12 +6,15 @@ import 'package:gym_grid/app/di.dart';
 import 'package:gym_grid/features/check_in/data/database/app_database.dart';
 import 'package:gym_grid/features/check_in/data/local_check_in_repository.dart';
 import 'package:gym_grid/features/check_in/data/photo_store.dart';
+import 'package:gym_grid/features/check_in/domain/entities/check_in_photo.dart';
 import 'package:gym_grid/features/check_in/domain/entities/workout_type.dart';
 import 'package:gym_grid/features/check_in/domain/repositories/check_in_repository.dart';
 import 'package:gym_grid/features/check_in/domain/repositories/photo_locator.dart';
 import 'package:gym_grid/features/check_in/domain/usecases/delete_check_in.dart';
 import 'package:gym_grid/features/check_in/domain/usecases/get_check_in.dart';
 import 'package:gym_grid/features/check_in/domain/usecases/save_check_in.dart';
+import 'package:gym_grid/features/check_in/domain/usecases/update_check_in.dart';
+import 'package:gym_grid/features/check_in/domain/usecases/watch_check_in.dart';
 import 'package:gym_grid/features/check_in/presentation/photo_picker.dart';
 import 'package:gym_grid/features/progress/domain/usecases/watch_progress.dart';
 import 'package:path/path.dart' as p;
@@ -48,7 +51,7 @@ void main() {
     await photo.create(recursive: true);
 
     final saved = await getIt<SaveCheckIn>()(
-      sourcePhotoPath: photo.path,
+      sourcePhotoPaths: [photo.path],
       workoutType: WorkoutType.mobility,
     );
 
@@ -72,12 +75,20 @@ void main() {
     final photo = File(p.join(container.path, 'tmp', 'camera.jpg'));
     await photo.create(recursive: true);
     final saved = await getIt<SaveCheckIn>()(
-      sourcePhotoPath: photo.path,
+      sourcePhotoPaths: [photo.path],
       workoutType: WorkoutType.mobility,
     );
 
     expect((await getIt<WatchProgress>()().first).checkIns, [saved]);
     expect(await getIt<GetCheckIn>()(saved.date), saved);
+    expect(await getIt<WatchCheckIn>()(saved.date).first, saved);
+
+    final edited = await getIt<UpdateCheckIn>()(
+      id: saved.id,
+      photos: [StoredPhoto(saved.coverPhotoPath)],
+      workoutType: WorkoutType.cardio,
+    );
+    expect(await getIt<GetCheckIn>()(saved.date), edited);
 
     await getIt<DeleteCheckIn>()(saved.id);
 

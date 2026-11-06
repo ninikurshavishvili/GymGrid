@@ -17,6 +17,29 @@ class AppDatabase extends _$AppDatabase {
 
   /// Increase this when a table changes, then run
   /// `dart run drift_dev make-migrations` and write the migration step.
+  ///
+  /// Version 2 let a check-in hold several photos.
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+    onUpgrade: (migrator, from, to) async {
+      if (from < 2) {
+        // Rebuilds the table, turning each row's one `photo_path` into a
+        // list holding it, so existing check-ins keep their photos.
+        await migrator.alterTable(
+          TableMigration(
+            checkIns,
+            columnTransformer: {
+              checkIns.photoPaths: const CustomExpression<String>(
+                'json_array(photo_path)',
+              ),
+            },
+            newColumns: [checkIns.photoPaths],
+          ),
+        );
+      }
+    },
+  );
 }

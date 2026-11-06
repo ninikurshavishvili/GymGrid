@@ -19,6 +19,23 @@ void main() {
     });
   });
 
+  group('PhotoPathsConverter', () {
+    const converter = PhotoPathsConverter();
+
+    test('stores paths as a JSON list and reads them back in order', () {
+      const paths = ['photos/b.jpg', 'photos/a.jpg'];
+
+      expect(converter.toSql(paths), '["photos/b.jpg","photos/a.jpg"]');
+      expect(converter.fromSql(converter.toSql(paths)), paths);
+    });
+
+    test('rejects text that is not a list of paths', () {
+      expect(() => converter.fromSql('[]'), throwsFormatException);
+      expect(() => converter.fromSql('{"a":1}'), throwsFormatException);
+      expect(() => converter.fromSql('photos/a.jpg'), throwsFormatException);
+    });
+  });
+
   group('WorkoutTypeConverter', () {
     const converter = WorkoutTypeConverter();
 

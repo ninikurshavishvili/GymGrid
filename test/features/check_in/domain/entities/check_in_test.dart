@@ -6,7 +6,7 @@ import 'package:gym_grid/features/check_in/domain/entities/workout_type.dart';
 CheckIn _checkIn({
   String id = '1',
   CalendarDay? date,
-  String photoPath = 'photos/1.jpg',
+  List<String> photoPaths = const ['photos/1.jpg'],
   WorkoutType workoutType = WorkoutType.strength,
   String? note = 'Leg day',
   DateTime? createdAt,
@@ -14,7 +14,7 @@ CheckIn _checkIn({
   return CheckIn(
     id: id,
     date: date ?? CalendarDay(2026, 10, 5),
-    photoPath: photoPath,
+    photoPaths: photoPaths,
     workoutType: workoutType,
     note: note,
     createdAt: createdAt ?? DateTime(2026, 10, 5, 7, 42),
@@ -32,7 +32,7 @@ void main() {
     final variants = {
       'id': _checkIn(id: '2'),
       'date': _checkIn(date: CalendarDay(2026, 10, 4)),
-      'photoPath': _checkIn(photoPath: 'photos/2.jpg'),
+      'photoPaths': _checkIn(photoPaths: const ['photos/2.jpg']),
       'workoutType': _checkIn(workoutType: WorkoutType.cardio),
       'note': _checkIn(note: null),
       'createdAt': _checkIn(createdAt: DateTime(2026, 10, 5, 7, 43)),
@@ -41,5 +41,25 @@ void main() {
     for (final MapEntry(key: field, value: variant) in variants.entries) {
       expect(variant, isNot(_checkIn()), reason: field);
     }
+  });
+
+  test('the first photo is the cover', () {
+    final checkIn = _checkIn(
+      photoPaths: const ['photos/a.jpg', 'photos/b.jpg'],
+    );
+
+    expect(checkIn.coverPhotoPath, 'photos/a.jpg');
+  });
+
+  group('cleanNote', () {
+    test('trims a note', () {
+      expect(CheckIn.cleanNote('  Deadlift PR\n'), 'Deadlift PR');
+    });
+
+    test('turns a missing or blank note into no note', () {
+      for (final note in [null, '', '   ', ' \n\t ']) {
+        expect(CheckIn.cleanNote(note), isNull, reason: 'note: "$note"');
+      }
+    });
   });
 }

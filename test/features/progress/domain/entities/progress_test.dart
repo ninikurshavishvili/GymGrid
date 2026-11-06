@@ -11,7 +11,7 @@ void main() {
   CheckIn checkInOn(CalendarDay date) => CheckIn(
     id: date.toIso8601String(),
     date: date,
-    photoPath: 'photos/$date.jpg',
+    photoPaths: ['photos/$date.jpg'],
     workoutType: WorkoutType.strength,
     createdAt: date.toLocalDateTime(),
   );

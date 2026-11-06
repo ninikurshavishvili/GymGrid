@@ -19,7 +19,7 @@ void main() {
     registerFallbackValue(
       NewCheckIn(
         date: CalendarDay(2000, 1, 1),
-        sourcePhotoPath: '',
+        sourcePhotoPaths: const [''],
         workoutType: WorkoutType.other,
         createdAt: DateTime(2000),
       ),
@@ -35,7 +35,7 @@ void main() {
       return CheckIn(
         id: '1',
         date: checkIn.date,
-        photoPath: 'photos/1.jpg',
+        photoPaths: const ['photos/1.jpg'],
         workoutType: checkIn.workoutType,
         note: checkIn.note,
         createdAt: checkIn.createdAt,
@@ -57,7 +57,7 @@ void main() {
     final now = DateTime(2026, 10, 5, 7, 42);
 
     await saveCheckInAt(now)(
-      sourcePhotoPath: '/tmp/camera.jpg',
+      sourcePhotoPaths: const ['/tmp/camera.jpg'],
       workoutType: WorkoutType.cardio,
       note: 'Intervals',
     );
@@ -66,7 +66,7 @@ void main() {
       savedCheckIn(),
       NewCheckIn(
         date: CalendarDay(2026, 10, 5),
-        sourcePhotoPath: '/tmp/camera.jpg',
+        sourcePhotoPaths: const ['/tmp/camera.jpg'],
         workoutType: WorkoutType.cardio,
         note: 'Intervals',
         createdAt: now,
@@ -74,9 +74,18 @@ void main() {
     );
   });
 
+  test('passes every photo on, in order', () async {
+    await saveCheckInAt(DateTime(2026, 10, 5))(
+      sourcePhotoPaths: const ['/tmp/a.jpg', '/tmp/b.jpg'],
+      workoutType: WorkoutType.strength,
+    );
+
+    expect(savedCheckIn().sourcePhotoPaths, ['/tmp/a.jpg', '/tmp/b.jpg']);
+  });
+
   test('a check-in in the last second of a day counts for that day', () async {
     await saveCheckInAt(DateTime(2026, 12, 31, 23, 59, 59, 999))(
-      sourcePhotoPath: '/tmp/camera.jpg',
+      sourcePhotoPaths: const ['/tmp/camera.jpg'],
       workoutType: WorkoutType.strength,
     );
 
@@ -85,17 +94,17 @@ void main() {
 
   test('returns the stored check-in', () async {
     final checkIn = await saveCheckInAt(DateTime(2026, 10, 5, 7, 42))(
-      sourcePhotoPath: '/tmp/camera.jpg',
+      sourcePhotoPaths: const ['/tmp/camera.jpg'],
       workoutType: WorkoutType.mobility,
     );
 
     expect(checkIn.id, '1');
-    expect(checkIn.photoPath, 'photos/1.jpg');
+    expect(checkIn.photoPaths, ['photos/1.jpg']);
   });
 
   test('trims the note', () async {
     await saveCheckInAt(DateTime(2026, 10, 5))(
-      sourcePhotoPath: '/tmp/camera.jpg',
+      sourcePhotoPaths: const ['/tmp/camera.jpg'],
       workoutType: WorkoutType.strength,
       note: '  Deadlift PR\n',
     );
@@ -106,7 +115,7 @@ void main() {
   test('stores a missing or blank note as no note', () async {
     for (final note in [null, '', '   ', ' \n\t ']) {
       await saveCheckInAt(DateTime(2026, 10, 5))(
-        sourcePhotoPath: '/tmp/camera.jpg',
+        sourcePhotoPaths: const ['/tmp/camera.jpg'],
         workoutType: WorkoutType.strength,
         note: note,
       );
@@ -122,7 +131,7 @@ void main() {
 
     await expectLater(
       saveCheckInAt(DateTime(2026, 10, 5))(
-        sourcePhotoPath: '/tmp/camera.jpg',
+        sourcePhotoPaths: const ['/tmp/camera.jpg'],
         workoutType: WorkoutType.strength,
       ),
       throwsA(isA<StorageFailure>()),

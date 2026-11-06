@@ -21,25 +21,24 @@ class SaveCheckIn {
   final CheckInRepository _repository;
   final Clock _clock;
 
-  /// Stores the photo at [sourcePhotoPath] with [workoutType] and [note].
+  /// Stores the photos at [sourcePhotoPaths] with [workoutType] and [note].
   ///
   /// A blank [note] is stored as no note. Throws a [Failure] if the
   /// check-in can't be stored.
   Future<CheckIn> call({
-    required String sourcePhotoPath,
+    required List<String> sourcePhotoPaths,
     required WorkoutType workoutType,
     String? note,
   }) async {
     // Read the clock once so the day and time can't straddle midnight.
     final now = _clock.now();
-    final trimmedNote = note?.trim();
 
     return _repository.save(
       NewCheckIn(
         date: CalendarDay.fromDateTime(now),
-        sourcePhotoPath: sourcePhotoPath,
+        sourcePhotoPaths: sourcePhotoPaths,
         workoutType: workoutType,
-        note: trimmedNote == null || trimmedNote.isEmpty ? null : trimmedNote,
+        note: CheckIn.cleanNote(note),
         createdAt: now,
       ),
     );

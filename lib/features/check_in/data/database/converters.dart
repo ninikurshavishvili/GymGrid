@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:drift/drift.dart';
 
 import '../../../../core/date/calendar_day.dart';
@@ -14,6 +16,23 @@ class CalendarDayConverter extends TypeConverter<CalendarDay, String> {
 
   @override
   String toSql(CalendarDay value) => value.toIso8601String();
+}
+
+/// Stores a check-in's photo paths as a JSON list.
+class PhotoPathsConverter extends TypeConverter<List<String>, String> {
+  const PhotoPathsConverter();
+
+  @override
+  List<String> fromSql(String fromDb) {
+    final decoded = jsonDecode(fromDb);
+    if (decoded is! List<dynamic> || decoded.isEmpty) {
+      throw FormatException('Not a list of photo paths', fromDb);
+    }
+    return List.unmodifiable(decoded.cast<String>());
+  }
+
+  @override
+  String toSql(List<String> value) => jsonEncode(value);
 }
 
 /// Stores a [WorkoutType] as fixed text.

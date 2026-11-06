@@ -28,17 +28,15 @@ class $CheckInsTable extends CheckIns
         requiredDuringInsert: true,
         defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'),
       ).withConverter<CalendarDay>($CheckInsTable.$converterday);
-  static const VerificationMeta _photoPathMeta = const VerificationMeta(
-    'photoPath',
-  );
   @override
-  late final GeneratedColumn<String> photoPath = GeneratedColumn<String>(
-    'photo_path',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
+  late final GeneratedColumnWithTypeConverter<List<String>, String> photoPaths =
+      GeneratedColumn<String>(
+        'photo_paths',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+      ).withConverter<List<String>>($CheckInsTable.$converterphotoPaths);
   @override
   late final GeneratedColumnWithTypeConverter<WorkoutType, String> workoutType =
       GeneratedColumn<String>(
@@ -72,7 +70,7 @@ class $CheckInsTable extends CheckIns
   List<GeneratedColumn> get $columns => [
     id,
     day,
-    photoPath,
+    photoPaths,
     workoutType,
     note,
     createdAt,
@@ -93,14 +91,6 @@ class $CheckInsTable extends CheckIns
       context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
     } else if (isInserting) {
       context.missing(_idMeta);
-    }
-    if (data.containsKey('photo_path')) {
-      context.handle(
-        _photoPathMeta,
-        photoPath.isAcceptableOrUnknown(data['photo_path']!, _photoPathMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_photoPathMeta);
     }
     if (data.containsKey('note')) {
       context.handle(
@@ -135,10 +125,12 @@ class $CheckInsTable extends CheckIns
           data['${effectivePrefix}day'],
         )!,
       ),
-      photoPath: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}photo_path'],
-      )!,
+      photoPaths: $CheckInsTable.$converterphotoPaths.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}photo_paths'],
+        )!,
+      ),
       workoutType: $CheckInsTable.$converterworkoutType.fromSql(
         attachedDatabase.typeMapping.read(
           DriftSqlType.string,
@@ -163,6 +155,8 @@ class $CheckInsTable extends CheckIns
 
   static TypeConverter<CalendarDay, String> $converterday =
       const CalendarDayConverter();
+  static TypeConverter<List<String>, String> $converterphotoPaths =
+      const PhotoPathsConverter();
   static TypeConverter<WorkoutType, String> $converterworkoutType =
       const WorkoutTypeConverter();
 }
@@ -173,14 +167,17 @@ class CheckInRow extends DataClass implements Insertable<CheckInRow> {
 
   /// Unique, so the database itself enforces one check-in per day.
   final CalendarDay day;
-  final String photoPath;
+
+  /// A JSON list rather than a second table: the paths are only ever read
+  /// and written together with their check-in, cover first.
+  final List<String> photoPaths;
   final WorkoutType workoutType;
   final String? note;
   final DateTime createdAt;
   const CheckInRow({
     required this.id,
     required this.day,
-    required this.photoPath,
+    required this.photoPaths,
     required this.workoutType,
     this.note,
     required this.createdAt,
@@ -192,7 +189,11 @@ class CheckInRow extends DataClass implements Insertable<CheckInRow> {
     {
       map['day'] = Variable<String>($CheckInsTable.$converterday.toSql(day));
     }
-    map['photo_path'] = Variable<String>(photoPath);
+    {
+      map['photo_paths'] = Variable<String>(
+        $CheckInsTable.$converterphotoPaths.toSql(photoPaths),
+      );
+    }
     {
       map['workout_type'] = Variable<String>(
         $CheckInsTable.$converterworkoutType.toSql(workoutType),
@@ -209,7 +210,7 @@ class CheckInRow extends DataClass implements Insertable<CheckInRow> {
     return CheckInsCompanion(
       id: Value(id),
       day: Value(day),
-      photoPath: Value(photoPath),
+      photoPaths: Value(photoPaths),
       workoutType: Value(workoutType),
       note: note == null && nullToAbsent ? const Value.absent() : Value(note),
       createdAt: Value(createdAt),
@@ -224,7 +225,7 @@ class CheckInRow extends DataClass implements Insertable<CheckInRow> {
     return CheckInRow(
       id: serializer.fromJson<String>(json['id']),
       day: serializer.fromJson<CalendarDay>(json['day']),
-      photoPath: serializer.fromJson<String>(json['photoPath']),
+      photoPaths: serializer.fromJson<List<String>>(json['photoPaths']),
       workoutType: serializer.fromJson<WorkoutType>(json['workoutType']),
       note: serializer.fromJson<String?>(json['note']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
@@ -236,7 +237,7 @@ class CheckInRow extends DataClass implements Insertable<CheckInRow> {
     return <String, dynamic>{
       'id': serializer.toJson<String>(id),
       'day': serializer.toJson<CalendarDay>(day),
-      'photoPath': serializer.toJson<String>(photoPath),
+      'photoPaths': serializer.toJson<List<String>>(photoPaths),
       'workoutType': serializer.toJson<WorkoutType>(workoutType),
       'note': serializer.toJson<String?>(note),
       'createdAt': serializer.toJson<DateTime>(createdAt),
@@ -246,14 +247,14 @@ class CheckInRow extends DataClass implements Insertable<CheckInRow> {
   CheckInRow copyWith({
     String? id,
     CalendarDay? day,
-    String? photoPath,
+    List<String>? photoPaths,
     WorkoutType? workoutType,
     Value<String?> note = const Value.absent(),
     DateTime? createdAt,
   }) => CheckInRow(
     id: id ?? this.id,
     day: day ?? this.day,
-    photoPath: photoPath ?? this.photoPath,
+    photoPaths: photoPaths ?? this.photoPaths,
     workoutType: workoutType ?? this.workoutType,
     note: note.present ? note.value : this.note,
     createdAt: createdAt ?? this.createdAt,
@@ -262,7 +263,9 @@ class CheckInRow extends DataClass implements Insertable<CheckInRow> {
     return CheckInRow(
       id: data.id.present ? data.id.value : this.id,
       day: data.day.present ? data.day.value : this.day,
-      photoPath: data.photoPath.present ? data.photoPath.value : this.photoPath,
+      photoPaths: data.photoPaths.present
+          ? data.photoPaths.value
+          : this.photoPaths,
       workoutType: data.workoutType.present
           ? data.workoutType.value
           : this.workoutType,
@@ -276,7 +279,7 @@ class CheckInRow extends DataClass implements Insertable<CheckInRow> {
     return (StringBuffer('CheckInRow(')
           ..write('id: $id, ')
           ..write('day: $day, ')
-          ..write('photoPath: $photoPath, ')
+          ..write('photoPaths: $photoPaths, ')
           ..write('workoutType: $workoutType, ')
           ..write('note: $note, ')
           ..write('createdAt: $createdAt')
@@ -286,14 +289,14 @@ class CheckInRow extends DataClass implements Insertable<CheckInRow> {
 
   @override
   int get hashCode =>
-      Object.hash(id, day, photoPath, workoutType, note, createdAt);
+      Object.hash(id, day, photoPaths, workoutType, note, createdAt);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is CheckInRow &&
           other.id == this.id &&
           other.day == this.day &&
-          other.photoPath == this.photoPath &&
+          other.photoPaths == this.photoPaths &&
           other.workoutType == this.workoutType &&
           other.note == this.note &&
           other.createdAt == this.createdAt);
@@ -302,7 +305,7 @@ class CheckInRow extends DataClass implements Insertable<CheckInRow> {
 class CheckInsCompanion extends UpdateCompanion<CheckInRow> {
   final Value<String> id;
   final Value<CalendarDay> day;
-  final Value<String> photoPath;
+  final Value<List<String>> photoPaths;
   final Value<WorkoutType> workoutType;
   final Value<String?> note;
   final Value<DateTime> createdAt;
@@ -310,7 +313,7 @@ class CheckInsCompanion extends UpdateCompanion<CheckInRow> {
   const CheckInsCompanion({
     this.id = const Value.absent(),
     this.day = const Value.absent(),
-    this.photoPath = const Value.absent(),
+    this.photoPaths = const Value.absent(),
     this.workoutType = const Value.absent(),
     this.note = const Value.absent(),
     this.createdAt = const Value.absent(),
@@ -319,20 +322,20 @@ class CheckInsCompanion extends UpdateCompanion<CheckInRow> {
   CheckInsCompanion.insert({
     required String id,
     required CalendarDay day,
-    required String photoPath,
+    required List<String> photoPaths,
     required WorkoutType workoutType,
     this.note = const Value.absent(),
     required DateTime createdAt,
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        day = Value(day),
-       photoPath = Value(photoPath),
+       photoPaths = Value(photoPaths),
        workoutType = Value(workoutType),
        createdAt = Value(createdAt);
   static Insertable<CheckInRow> custom({
     Expression<String>? id,
     Expression<String>? day,
-    Expression<String>? photoPath,
+    Expression<String>? photoPaths,
     Expression<String>? workoutType,
     Expression<String>? note,
     Expression<DateTime>? createdAt,
@@ -341,7 +344,7 @@ class CheckInsCompanion extends UpdateCompanion<CheckInRow> {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (day != null) 'day': day,
-      if (photoPath != null) 'photo_path': photoPath,
+      if (photoPaths != null) 'photo_paths': photoPaths,
       if (workoutType != null) 'workout_type': workoutType,
       if (note != null) 'note': note,
       if (createdAt != null) 'created_at': createdAt,
@@ -352,7 +355,7 @@ class CheckInsCompanion extends UpdateCompanion<CheckInRow> {
   CheckInsCompanion copyWith({
     Value<String>? id,
     Value<CalendarDay>? day,
-    Value<String>? photoPath,
+    Value<List<String>>? photoPaths,
     Value<WorkoutType>? workoutType,
     Value<String?>? note,
     Value<DateTime>? createdAt,
@@ -361,7 +364,7 @@ class CheckInsCompanion extends UpdateCompanion<CheckInRow> {
     return CheckInsCompanion(
       id: id ?? this.id,
       day: day ?? this.day,
-      photoPath: photoPath ?? this.photoPath,
+      photoPaths: photoPaths ?? this.photoPaths,
       workoutType: workoutType ?? this.workoutType,
       note: note ?? this.note,
       createdAt: createdAt ?? this.createdAt,
@@ -380,8 +383,10 @@ class CheckInsCompanion extends UpdateCompanion<CheckInRow> {
         $CheckInsTable.$converterday.toSql(day.value),
       );
     }
-    if (photoPath.present) {
-      map['photo_path'] = Variable<String>(photoPath.value);
+    if (photoPaths.present) {
+      map['photo_paths'] = Variable<String>(
+        $CheckInsTable.$converterphotoPaths.toSql(photoPaths.value),
+      );
     }
     if (workoutType.present) {
       map['workout_type'] = Variable<String>(
@@ -405,7 +410,7 @@ class CheckInsCompanion extends UpdateCompanion<CheckInRow> {
     return (StringBuffer('CheckInsCompanion(')
           ..write('id: $id, ')
           ..write('day: $day, ')
-          ..write('photoPath: $photoPath, ')
+          ..write('photoPaths: $photoPaths, ')
           ..write('workoutType: $workoutType, ')
           ..write('note: $note, ')
           ..write('createdAt: $createdAt, ')
@@ -433,7 +438,7 @@ typedef $$CheckInsTableCreateCompanionBuilder =
     CheckInsCompanion Function({
       required String id,
       required CalendarDay day,
-      required String photoPath,
+      required List<String> photoPaths,
       required WorkoutType workoutType,
       Value<String?> note,
       required DateTime createdAt,
@@ -443,7 +448,7 @@ typedef $$CheckInsTableUpdateCompanionBuilder =
     CheckInsCompanion Function({
       Value<String> id,
       Value<CalendarDay> day,
-      Value<String> photoPath,
+      Value<List<String>> photoPaths,
       Value<WorkoutType> workoutType,
       Value<String?> note,
       Value<DateTime> createdAt,
@@ -470,9 +475,10 @@ class $$CheckInsTableFilterComposer
         builder: (column) => ColumnWithTypeConverterFilters(column),
       );
 
-  ColumnFilters<String> get photoPath => $composableBuilder(
-    column: $table.photoPath,
-    builder: (column) => ColumnFilters(column),
+  ColumnWithTypeConverterFilters<List<String>, List<String>, String>
+  get photoPaths => $composableBuilder(
+    column: $table.photoPaths,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
   );
 
   ColumnWithTypeConverterFilters<WorkoutType, WorkoutType, String>
@@ -511,8 +517,8 @@ class $$CheckInsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<String> get photoPath => $composableBuilder(
-    column: $table.photoPath,
+  ColumnOrderings<String> get photoPaths => $composableBuilder(
+    column: $table.photoPaths,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -547,8 +553,11 @@ class $$CheckInsTableAnnotationComposer
   GeneratedColumnWithTypeConverter<CalendarDay, String> get day =>
       $composableBuilder(column: $table.day, builder: (column) => column);
 
-  GeneratedColumn<String> get photoPath =>
-      $composableBuilder(column: $table.photoPath, builder: (column) => column);
+  GeneratedColumnWithTypeConverter<List<String>, String> get photoPaths =>
+      $composableBuilder(
+        column: $table.photoPaths,
+        builder: (column) => column,
+      );
 
   GeneratedColumnWithTypeConverter<WorkoutType, String> get workoutType =>
       $composableBuilder(
@@ -596,7 +605,7 @@ class $$CheckInsTableTableManager
               ({
                 Value<String> id = const Value.absent(),
                 Value<CalendarDay> day = const Value.absent(),
-                Value<String> photoPath = const Value.absent(),
+                Value<List<String>> photoPaths = const Value.absent(),
                 Value<WorkoutType> workoutType = const Value.absent(),
                 Value<String?> note = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
@@ -604,7 +613,7 @@ class $$CheckInsTableTableManager
               }) => CheckInsCompanion(
                 id: id,
                 day: day,
-                photoPath: photoPath,
+                photoPaths: photoPaths,
                 workoutType: workoutType,
                 note: note,
                 createdAt: createdAt,
@@ -614,7 +623,7 @@ class $$CheckInsTableTableManager
               ({
                 required String id,
                 required CalendarDay day,
-                required String photoPath,
+                required List<String> photoPaths,
                 required WorkoutType workoutType,
                 Value<String?> note = const Value.absent(),
                 required DateTime createdAt,
@@ -622,7 +631,7 @@ class $$CheckInsTableTableManager
               }) => CheckInsCompanion.insert(
                 id: id,
                 day: day,
-                photoPath: photoPath,
+                photoPaths: photoPaths,
                 workoutType: workoutType,
                 note: note,
                 createdAt: createdAt,
