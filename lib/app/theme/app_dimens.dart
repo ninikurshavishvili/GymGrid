@@ -20,9 +20,9 @@ abstract final class AppRadius {
   /// Chips and thumbnails.
   static const double md = 8;
 
-  /// Cards, inputs and buttons.
+  /// Inputs and snack bars.
   static const double lg = 12;
 
-  /// Photo frames and dialogs.
+  /// Cards, photo frames and dialogs.
   static const double xl = 16;
 }

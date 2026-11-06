@@ -1,21 +1,26 @@
 import 'package:flutter/material.dart';
 
-/// Font family names, matching the `family` entries in pubspec.yaml.
+/// The system font, under the names Flutter's Cupertino widgets use for it.
+///
+/// On iOS these are San Francisco in Apple's two optical sizes. Other
+/// platforms fall back to their own default font.
 abstract final class AppFonts {
-  /// UI text.
-  static const String inter = 'Inter';
+  /// SF Pro Text, drawn for sizes below 20 points.
+  static const String text = 'CupertinoSystemText';
 
-  /// Numbers, labels and badges.
-  static const String mono = 'JetBrainsMono';
+  /// SF Pro Display, drawn for 20 points and up.
+  static const String display = 'CupertinoSystemDisplay';
 }
 
 /// GymGrid's type scale, read in widgets through `context.textStyles`.
 ///
-/// Styles carry no colour. Widgets pick a colour token with
-/// `copyWith(color: ...)`, or inherit one from the surrounding
-/// [DefaultTextStyle]. Sizes are in logical pixels and Flutter scales them
-/// with the system text size (Dynamic Type on iOS), so no style here fixes
-/// a line height in pixels.
+/// Sizes and weights follow Apple's Dynamic Type styles at the default text
+/// size; each doc comment names the style it matches. Letter spacing is
+/// Apple's tracking for each size, which UIKit applies by itself and Flutter
+/// leaves to the app. Styles carry no colour. Widgets pick a colour token with `copyWith(color: ...)`, or
+/// inherit one from the surrounding [DefaultTextStyle]. Flutter scales these
+/// sizes with the system text size, so no style fixes a line height in
+/// pixels.
 @immutable
 class AppTextStyles extends ThemeExtension<AppTextStyles> {
   const AppTextStyles({
@@ -24,73 +29,79 @@ class AppTextStyles extends ThemeExtension<AppTextStyles> {
     required this.badge,
     required this.body,
     required this.bodyStrong,
-    required this.monoBody,
+    required this.footnote,
     required this.button,
   });
 
   static const AppTextStyles standard = AppTextStyles(
     header: TextStyle(
-      fontFamily: AppFonts.inter,
-      fontSize: 18,
-      fontWeight: FontWeight.w700,
-      letterSpacing: -0.5,
+      fontFamily: AppFonts.display,
+      fontSize: 20,
+      fontWeight: FontWeight.w600,
+      letterSpacing: 0.38,
     ),
     stat: TextStyle(
-      fontFamily: AppFonts.mono,
-      fontSize: 20,
+      fontFamily: AppFonts.display,
+      fontSize: 34,
       fontWeight: FontWeight.w700,
+      letterSpacing: 0.4,
+      fontFeatures: [FontFeature.tabularFigures()],
     ),
     badge: TextStyle(
-      fontFamily: AppFonts.mono,
-      fontSize: 10,
-      fontWeight: FontWeight.w500,
-      letterSpacing: 0.5,
+      fontFamily: AppFonts.text,
+      fontSize: 12,
+      fontWeight: FontWeight.w400,
     ),
     body: TextStyle(
-      fontFamily: AppFonts.inter,
-      fontSize: 12,
+      fontFamily: AppFonts.text,
+      fontSize: 17,
       fontWeight: FontWeight.w400,
-      height: 1.4,
+      letterSpacing: -0.41,
+      height: 1.3,
     ),
     bodyStrong: TextStyle(
-      fontFamily: AppFonts.inter,
-      fontSize: 12,
+      fontFamily: AppFonts.text,
+      fontSize: 17,
       fontWeight: FontWeight.w600,
-      height: 1.4,
+      letterSpacing: -0.41,
+      height: 1.3,
     ),
-    monoBody: TextStyle(
-      fontFamily: AppFonts.mono,
-      fontSize: 12,
+    footnote: TextStyle(
+      fontFamily: AppFonts.text,
+      fontSize: 13,
       fontWeight: FontWeight.w400,
+      letterSpacing: -0.08,
+      fontFeatures: [FontFeature.tabularFigures()],
     ),
     button: TextStyle(
-      fontFamily: AppFonts.inter,
-      fontSize: 14,
+      fontFamily: AppFonts.text,
+      fontSize: 17,
       fontWeight: FontWeight.w600,
-      letterSpacing: 0.1,
+      letterSpacing: -0.41,
     ),
   );
 
-  /// Screen titles. Inter 18 bold.
+  /// Section titles. Title 3: 20 semibold.
   final TextStyle header;
 
-  /// Streak counts. JetBrains Mono 20 bold.
+  /// Streak counts, with figures of equal width (`.monospacedDigit()`) so a
+  /// changing count doesn't shift. Large Title size: 34 bold.
   final TextStyle stat;
 
-  /// Labels, badges, dates and grid axis labels. JetBrains Mono 10 medium.
+  /// Small labels such as grid axes and photo captions. Caption 1: 12.
   final TextStyle badge;
 
-  /// Body copy and notes. Inter 12 regular.
+  /// Long-form text such as notes. Body: 17.
   final TextStyle body;
 
-  /// Card titles and navigation titles. Inter 12 semibold.
+  /// Row titles and navigation titles. Headline: 17 semibold.
   final TextStyle bodyStrong;
 
-  /// Inline numbers next to body text, such as "days" or "58 / 280".
-  /// JetBrains Mono 12 regular.
-  final TextStyle monoBody;
+  /// Supporting text, such as subtitles, dates and counts. Footnote: 13,
+  /// with figures of equal width.
+  final TextStyle footnote;
 
-  /// Button labels. Inter 14 semibold.
+  /// Button labels. 17 semibold.
   final TextStyle button;
 
   @override
@@ -100,7 +111,7 @@ class AppTextStyles extends ThemeExtension<AppTextStyles> {
     TextStyle? badge,
     TextStyle? body,
     TextStyle? bodyStrong,
-    TextStyle? monoBody,
+    TextStyle? footnote,
     TextStyle? button,
   }) {
     return AppTextStyles(
@@ -109,7 +120,7 @@ class AppTextStyles extends ThemeExtension<AppTextStyles> {
       badge: badge ?? this.badge,
       body: body ?? this.body,
       bodyStrong: bodyStrong ?? this.bodyStrong,
-      monoBody: monoBody ?? this.monoBody,
+      footnote: footnote ?? this.footnote,
       button: button ?? this.button,
     );
   }
@@ -124,7 +135,7 @@ class AppTextStyles extends ThemeExtension<AppTextStyles> {
       badge: mix(badge, other.badge),
       body: mix(body, other.body),
       bodyStrong: mix(bodyStrong, other.bodyStrong),
-      monoBody: mix(monoBody, other.monoBody),
+      footnote: mix(footnote, other.footnote),
       button: mix(button, other.button),
     );
   }

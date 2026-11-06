@@ -1,160 +1,155 @@
-import 'dart:typed_data';
-import 'dart:ui' as ui;
+import 'dart:async';
 
+import 'package:flutter/cupertino.dart'
+    show
+        CupertinoActivityIndicator,
+        CupertinoIcons,
+        CupertinoSliverNavigationBar;
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/router.dart';
 import '../../../app/theme/app_theme.dart';
-import '../../../core/widgets/bordered_card.dart';
-import '../../../core/widgets/chip_selector.dart';
-import '../../../core/widgets/photo_frame.dart';
+import '../../../core/date/calendar_day.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/streak_card.dart';
+import '../../check_in/domain/repositories/photo_locator.dart';
+import '../domain/entities/progress.dart';
+import '../domain/entities/streak_summary.dart';
+import 'home_cubit.dart';
+import 'home_state.dart';
+import 'widgets/today_card.dart';
+import 'widgets/year_activity_card.dart';
 
-/// Placeholder that previews the shared widgets. Replaced by the streak
-/// cards and year grid in UI step 3.
-class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+/// The app's main screen: streaks, the year so far, and today's check-in.
+///
+/// Built like an iOS screen rather than a Material one: a large title that
+/// collapses on scroll, and a pinned action that's only there while there's
+/// something to do. Once the user has checked in the button goes away, and
+/// the today row carries the state on its own.
+class HomeScreen extends StatelessWidget {
+  const HomeScreen({required this.photoLocator, super.key});
+
+  final PhotoLocator photoLocator;
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: BlocBuilder<HomeCubit, HomeState>(
+        builder: (context, state) {
+          final needsCheckIn = switch (state) {
+            HomeLoaded(:final progress) => progress.todaysCheckIn == null,
+            _ => false,
+          };
+
+          return Column(
+            children: [
+              Expanded(
+                child: CustomScrollView(
+                  slivers: [
+                    const _NavigationBar(),
+                    switch (state) {
+                      HomeLoading() => const SliverFillRemaining(
+                        hasScrollBody: false,
+                        child: Center(child: CupertinoActivityIndicator()),
+                      ),
+                      HomeLoaded(:final progress) => _Content(
+                        progress: progress,
+                        photoLocator: photoLocator,
+                        hasBottomBar: needsCheckIn,
+                      ),
+                      HomeFailure() => const SliverFillRemaining(
+                        hasScrollBody: false,
+                        child: _FailureMessage(),
+                      ),
+                    },
+                  ],
+                ),
+              ),
+              if (needsCheckIn) const _CheckInBar(),
+            ],
+          );
+        },
+      ),
+    );
+  }
 }
 
-class _HomeScreenState extends State<HomeScreen> {
-  static const _workouts = ['Strength', 'Cardio', 'Mobility', 'Other'];
-
-  String? _workout = _workouts.first;
-  bool _isSaving = false;
-  ImageProvider? _samplePhoto;
+class _NavigationBar extends StatelessWidget {
+  const _NavigationBar();
 
   @override
-  void initState() {
-    super.initState();
-    _drawSamplePhoto().then((photo) {
-      if (mounted) setState(() => _samplePhoto = photo);
-    }).ignore();
+  Widget build(BuildContext context) {
+    return CupertinoSliverNavigationBar(
+      largeTitle: const Text('GymGrid'),
+      // The small title appears only once the large one has scrolled away.
+      middle: const Text('GymGrid'),
+      alwaysShowMiddle: false,
+      backgroundColor: context.colors.bgPrimary,
+      border: null,
+      // Nothing opened from here shares this title's transition.
+      transitionBetweenRoutes: false,
+    );
   }
+}
 
-  void _toast(String message) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(message)));
+class _Content extends StatelessWidget {
+  const _Content({
+    required this.progress,
+    required this.photoLocator,
+    required this.hasBottomBar,
+  });
+
+  final Progress progress;
+  final PhotoLocator photoLocator;
+  final bool hasBottomBar;
+
+  void _openDay(BuildContext context, CalendarDay day) {
+    unawaited(context.push(AppRoutes.dayDetail(day.toLocalDateTime())));
   }
 
   @override
   Widget build(BuildContext context) {
-    final text = context.textStyles;
+    final today = progress.today;
+    final date = MaterialLocalizations.of(
+      context,
+    ).formatMediumDate(today.toLocalDateTime());
 
-    return Scaffold(
-      body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.all(AppSpacing.xl),
+    return SliverSafeArea(
+      top: false,
+      // The bottom bar handles the home indicator when it's showing.
+      bottom: !hasBottomBar,
+      sliver: SliverPadding(
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.lg,
+          0,
+          AppSpacing.lg,
+          AppSpacing.lg,
+        ),
+        sliver: SliverList.list(
           children: [
-            Text('Shared widgets', style: text.header),
-            const _Section('StreakCard'),
-            const Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: StreakCard(
-                    label: 'Current streak',
-                    days: 14,
-                    icon: Icons.local_fire_department,
-                  ),
-                ),
-                SizedBox(width: AppSpacing.sm + 2),
-                Expanded(child: StreakCard(label: 'Longest streak', days: 42)),
-              ],
-            ),
-            const SizedBox(height: AppSpacing.sm + 2),
-            const Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: StreakCard(
-                    label: 'Current streak',
-                    days: 14,
-                    icon: Icons.local_fire_department,
-                    isAtRisk: true,
-                  ),
-                ),
-                SizedBox(width: AppSpacing.sm + 2),
-                Expanded(child: StreakCard(label: 'Longest streak', days: 0)),
-              ],
-            ),
-            const _Section('BorderedCard'),
-            BorderedCard(
-              onTap: () => _toast('Card tapped'),
-              semanticLabel: 'Tappable card',
-              child: Text('Tappable card', style: text.bodyStrong),
-            ),
-            const SizedBox(height: AppSpacing.sm + 2),
-            BorderedCard.dashed(
-              child: Text(
-                'Dashed card for empty states',
-                textAlign: TextAlign.center,
-                style: text.body,
+            Text(
+              date,
+              style: context.textStyles.footnote.copyWith(
+                color: context.colors.textSecondary,
               ),
             ),
-            const _Section('ChipSelector'),
-            ChipSelector<String>(
-              options: _workouts,
-              selected: _workout,
-              labelOf: (workout) => workout,
-              onSelected: (workout) => setState(() => _workout = workout),
-            ),
-            const _Section('PrimaryButton'),
-            PrimaryButton(
-              label: _isSaving ? 'Saving…' : 'Tap to toggle loading',
-              icon: Icons.photo_camera_outlined,
-              isLoading: _isSaving,
-              onPressed: () async {
-                setState(() => _isSaving = true);
-                await Future<void>.delayed(const Duration(seconds: 2));
-                if (mounted) setState(() => _isSaving = false);
-              },
+            const SizedBox(height: AppSpacing.lg),
+            _Streaks(streaks: progress.streaks),
+            const SizedBox(height: AppSpacing.md),
+            YearActivityCard(
+              // A new year is a new grid, starting from its own scroll
+              // position.
+              key: ValueKey(today.year),
+              progress: progress,
+              onDayTap: (day) => _openDay(context, day),
             ),
             const SizedBox(height: AppSpacing.md),
-            const PrimaryButton(label: 'Disabled', onPressed: null),
-            const SizedBox(height: AppSpacing.md),
-            PrimaryButton(
-              label: 'Delete check-in',
-              tone: PrimaryButtonTone.danger,
-              onPressed: () => _toast('Danger pressed'),
-            ),
-            const _Section('PhotoFrame'),
-            PhotoFrame(
-              image: null,
-              semanticLabel: 'Check-in photo',
-              onTapEmpty: () => _toast('Open camera'),
-            ),
-            const SizedBox(height: AppSpacing.md),
-            PhotoFrame(
-              image: _samplePhoto,
-              semanticLabel: 'Sample check-in photo',
-              caption: '07:42 AM',
-              captionAlignment: AlignmentDirectional.topStart,
-              action: PhotoFrameAction(
-                icon: Icons.refresh,
-                label: 'Retake',
-                onPressed: () => _toast('Retake'),
-              ),
-            ),
-            const SizedBox(height: AppSpacing.md),
-            PhotoFrame(
-              image: MemoryImage(Uint8List(4)),
-              semanticLabel: 'Missing photo',
-            ),
-            const _Section('Navigation'),
-            TextButton(
-              onPressed: () =>
-                  context.push(AppRoutes.dayDetail(DateTime.now())),
-              child: const Text("Open today's detail"),
-            ),
-            TextButton(
-              onPressed: () => context.push(AppRoutes.checkIn),
-              child: const Text('Open check-in'),
+            TodayCard(
+              progress: progress,
+              photoLocator: photoLocator,
+              onOpen: () => _openDay(context, today),
             ),
           ],
         ),
@@ -163,43 +158,95 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-class _Section extends StatelessWidget {
-  const _Section(this.title);
+/// The two streak counts, side by side until the text gets too large.
+class _Streaks extends StatelessWidget {
+  const _Streaks({required this.streaks});
 
-  final String title;
+  final StreakSummary streaks;
+
+  static const double _gap = AppSpacing.md;
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(
-        top: AppSpacing.xxl,
-        bottom: AppSpacing.sm,
+    final current = StreakCard(
+      label: 'Current streak',
+      days: streaks.current,
+      icon: CupertinoIcons.flame_fill,
+      isAtRisk: streaks.isAtRisk,
+    );
+    final longest = StreakCard(label: 'Longest streak', days: streaks.longest);
+
+    if (context.usesAccessibilityTextSize) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        spacing: _gap,
+        children: [current, longest],
+      );
+    }
+
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        spacing: _gap,
+        children: [
+          Expanded(child: current),
+          Expanded(child: longest),
+        ],
       ),
-      child: Text(
-        title.toUpperCase(),
-        style: context.textStyles.badge.copyWith(
-          color: context.colors.textSecondary,
+    );
+  }
+}
+
+class _CheckInBar extends StatelessWidget {
+  const _CheckInBar();
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.lg,
+          AppSpacing.sm,
+          AppSpacing.lg,
+          AppSpacing.sm,
+        ),
+        child: PrimaryButton(
+          label: 'Check in',
+          icon: CupertinoIcons.camera_fill,
+          onPressed: () => context.push(AppRoutes.checkIn),
         ),
       ),
     );
   }
 }
 
-/// Paints a gradient stand-in for a camera photo until check-in exists.
-Future<ImageProvider> _drawSamplePhoto() async {
-  const width = 800;
-  const height = 600;
-  final recorder = ui.PictureRecorder();
-  Canvas(recorder).drawRect(
-    const Rect.fromLTWH(0, 0, 800, 600),
-    Paint()
-      ..shader = ui.Gradient.linear(Offset.zero, const Offset(800, 600), [
-        AppColors.dark.successSubtle,
-        AppColors.dark.gridFilled,
-      ]),
-  );
-  final image = await recorder.endRecording().toImage(width, height);
-  final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
-  image.dispose();
-  return MemoryImage(bytes!.buffer.asUint8List());
+class _FailureMessage extends StatelessWidget {
+  const _FailureMessage();
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.xl),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          spacing: AppSpacing.xs,
+          children: [
+            Text(
+              "Couldn't load your check-ins",
+              textAlign: TextAlign.center,
+              style: context.textStyles.bodyStrong.copyWith(
+                color: context.colors.textPrimary,
+              ),
+            ),
+            TextButton(
+              onPressed: context.read<HomeCubit>().watch,
+              child: const Text('Try again'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }

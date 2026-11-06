@@ -33,9 +33,9 @@ abstract final class AppTheme {
     // its own tonal palette, which would drift from the design's exact hexes.
     final colorScheme = ColorScheme.dark(
       primary: colors.actionGreen,
-      onPrimary: colors.textPrimary,
+      onPrimary: colors.onAction,
       secondary: colors.actionGreenBorder,
-      onSecondary: colors.textPrimary,
+      onSecondary: colors.onAction,
       error: colors.dangerRed,
       onError: colors.textPrimary,
       surface: colors.bgPrimary,
@@ -53,14 +53,18 @@ abstract final class AppTheme {
       surfaceTint: Colors.transparent,
     );
 
+    // Filled like the app's cards, with no outline. The caret shows focus.
     final inputBorder = OutlineInputBorder(
-      borderRadius: BorderRadius.circular(AppRadius.lg),
-      borderSide: BorderSide(color: colors.borderDefault),
+      borderRadius: BorderRadius.circular(AppRadius.xl),
+      borderSide: BorderSide.none,
     );
 
     return ThemeData(
       colorScheme: colorScheme,
-      fontFamily: AppFonts.inter,
+      fontFamily: AppFonts.text,
+      // iOS controls dim when pressed; they don't ripple.
+      splashFactory: NoSplash.splashFactory,
+      highlightColor: colors.overlayBorder,
       scaffoldBackgroundColor: colors.bgPrimary,
       textTheme: TextTheme(
         titleLarge: text.header,
@@ -77,13 +81,12 @@ abstract final class AppTheme {
         scrolledUnderElevation: 0,
         centerTitle: true,
         titleTextStyle: text.bodyStrong.copyWith(color: colors.textPrimary),
-        shape: Border(bottom: BorderSide(color: colors.bgTertiary)),
         systemOverlayStyle: systemOverlayStyle,
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
           backgroundColor: colors.actionGreen,
-          foregroundColor: colors.textPrimary,
+          foregroundColor: colors.onAction,
           disabledBackgroundColor: colors.bgTertiary,
           disabledForegroundColor: colors.textMuted,
           textStyle: text.button,
@@ -94,17 +97,16 @@ abstract final class AppTheme {
             horizontal: AppSpacing.lg,
             vertical: AppSpacing.md,
           ),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppRadius.lg),
-          ),
+          shape: const StadiumBorder(),
+          splashFactory: NoSplash.splashFactory,
         ),
       ),
-      // Text buttons read as links. actionGreen is too dark for small text on
-      // bgPrimary, so links use the design's blue.
+      // Text buttons read as links, in the app's one accent colour.
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
-          foregroundColor: colors.accentBlue,
+          foregroundColor: colors.actionGreen,
           textStyle: text.bodyStrong,
+          splashFactory: NoSplash.splashFactory,
         ),
       ),
       dividerTheme: DividerThemeData(
@@ -116,13 +118,12 @@ abstract final class AppTheme {
       inputDecorationTheme: InputDecorationThemeData(
         filled: true,
         fillColor: colors.bgSecondary,
-        contentPadding: const EdgeInsets.all(AppSpacing.md),
-        hintStyle: text.body.copyWith(color: colors.textMuted),
+        contentPadding: const EdgeInsets.all(AppSpacing.lg),
+        hintStyle: text.body.copyWith(color: colors.textSecondary),
+        counterStyle: text.footnote.copyWith(color: colors.textSecondary),
         border: inputBorder,
         enabledBorder: inputBorder,
-        focusedBorder: inputBorder.copyWith(
-          borderSide: BorderSide(color: colors.actionGreenBorder),
-        ),
+        focusedBorder: inputBorder,
       ),
       textSelectionTheme: TextSelectionThemeData(
         cursorColor: colors.actionGreenBorder,
@@ -134,7 +135,6 @@ abstract final class AppTheme {
         barrierColor: colors.bgPrimary.withValues(alpha: 0.7),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppRadius.xl),
-          side: BorderSide(color: colors.borderDefault),
         ),
       ),
       snackBarTheme: SnackBarThemeData(
@@ -161,4 +161,10 @@ extension AppThemeContext on BuildContext {
   AppColors get colors => Theme.of(this).extension<AppColors>()!;
 
   AppTextStyles get textStyles => Theme.of(this).extension<AppTextStyles>()!;
+
+  /// Whether text is at one of iOS's accessibility sizes, where layouts
+  /// should stack rather than sit side by side. The counterpart of SwiftUI's
+  /// `dynamicTypeSize.isAccessibilitySize`.
+  bool get usesAccessibilityTextSize =>
+      MediaQuery.textScalerOf(this).scale(1) >= 1.6;
 }

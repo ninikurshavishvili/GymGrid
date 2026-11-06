@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 
 /// GymGrid's colour tokens, read in widgets through `context.colors`.
 ///
-/// The first seven names come from the design spec. The rest cover colours
-/// the design uses that the spec doesn't name, so no screen needs a raw hex.
+/// The values are Apple's dark system colours (`systemBackground`,
+/// `systemGreen` and so on), on the true black of the Fitness app. They are
+/// fixed rather than read from the system so GymGrid looks the same in both
+/// appearances, and so no screen needs a raw hex.
 @immutable
 class AppColors extends ThemeExtension<AppColors> {
   const AppColors({
@@ -15,10 +17,10 @@ class AppColors extends ThemeExtension<AppColors> {
     required this.gridFilled,
     required this.actionGreen,
     required this.actionGreenBorder,
+    required this.onAction,
     required this.successSubtle,
     required this.dangerRed,
     required this.warning,
-    required this.accentBlue,
     required this.textPrimary,
     required this.textBody,
     required this.textSecondary,
@@ -28,22 +30,22 @@ class AppColors extends ThemeExtension<AppColors> {
   });
 
   static const AppColors dark = AppColors(
-    bgPrimary: Color(0xFF0D1117),
-    bgSecondary: Color(0xFF161B22),
-    bgTertiary: Color(0xFF21262D),
-    borderDefault: Color(0xFF30363D),
-    gridEmpty: Color(0xFF21262D),
-    gridFilled: Color(0xFF39D353),
-    actionGreen: Color(0xFF238636),
-    actionGreenBorder: Color(0xFF2EA043),
-    successSubtle: Color(0xFF0E4429),
-    dangerRed: Color(0xFFDA3633),
-    warning: Color(0xFFE3B341),
-    accentBlue: Color(0xFF58A6FF),
+    bgPrimary: Color(0xFF000000),
+    bgSecondary: Color(0xFF1C1C1E),
+    bgTertiary: Color(0xFF2C2C2E),
+    borderDefault: Color(0xFF38383A),
+    gridEmpty: Color(0xFF2C2C2E),
+    gridFilled: Color(0xFF30D158),
+    actionGreen: Color(0xFF30D158),
+    actionGreenBorder: Color(0xFF30D158),
+    onAction: Color(0xFF000000),
+    successSubtle: Color(0x2630D158),
+    dangerRed: Color(0xFFFF453A),
+    warning: Color(0xFFFF9F0A),
     textPrimary: Color(0xFFFFFFFF),
-    textBody: Color(0xFFC9D1D9),
-    textSecondary: Color(0xFF8B949E),
-    textMuted: Color(0xFF484F58),
+    textBody: Color(0xFFEBEBF5),
+    textSecondary: Color(0xFF8E8E93),
+    textMuted: Color(0xFF48484A),
     overlayScrim: Color(0xB3000000),
     overlayBorder: Color(0x1AFFFFFF),
   );
@@ -57,7 +59,7 @@ class AppColors extends ThemeExtension<AppColors> {
   /// Secondary buttons, icon wells and hairline dividers.
   final Color bgTertiary;
 
-  /// Card and input outlines.
+  /// Outlines where an edge is needed, such as inputs.
   final Color borderDefault;
 
   /// A grid day without a check-in.
@@ -69,8 +71,12 @@ class AppColors extends ThemeExtension<AppColors> {
   /// Primary buttons and the selected workout chip.
   final Color actionGreen;
 
-  /// Outline for green elements: selected chip, focused input, pending today.
+  /// Outline for green elements: selected chip, pending today.
   final Color actionGreenBorder;
+
+  /// Labels on [actionGreen]. Black, as in Fitness: white on this bright a
+  /// green doesn't have enough contrast to read.
+  final Color onAction;
 
   /// Background behind green text, such as badges.
   final Color successSubtle;
@@ -80,9 +86,6 @@ class AppColors extends ThemeExtension<AppColors> {
 
   /// The "at risk" streak state.
   final Color warning;
-
-  /// Text links such as Back.
-  final Color accentBlue;
 
   /// Headings, numbers and button labels.
   final Color textPrimary;
@@ -113,10 +116,10 @@ class AppColors extends ThemeExtension<AppColors> {
     Color? gridFilled,
     Color? actionGreen,
     Color? actionGreenBorder,
+    Color? onAction,
     Color? successSubtle,
     Color? dangerRed,
     Color? warning,
-    Color? accentBlue,
     Color? textPrimary,
     Color? textBody,
     Color? textSecondary,
@@ -133,10 +136,10 @@ class AppColors extends ThemeExtension<AppColors> {
       gridFilled: gridFilled ?? this.gridFilled,
       actionGreen: actionGreen ?? this.actionGreen,
       actionGreenBorder: actionGreenBorder ?? this.actionGreenBorder,
+      onAction: onAction ?? this.onAction,
       successSubtle: successSubtle ?? this.successSubtle,
       dangerRed: dangerRed ?? this.dangerRed,
       warning: warning ?? this.warning,
-      accentBlue: accentBlue ?? this.accentBlue,
       textPrimary: textPrimary ?? this.textPrimary,
       textBody: textBody ?? this.textBody,
       textSecondary: textSecondary ?? this.textSecondary,
@@ -159,10 +162,10 @@ class AppColors extends ThemeExtension<AppColors> {
       gridFilled: mix(gridFilled, other.gridFilled),
       actionGreen: mix(actionGreen, other.actionGreen),
       actionGreenBorder: mix(actionGreenBorder, other.actionGreenBorder),
+      onAction: mix(onAction, other.onAction),
       successSubtle: mix(successSubtle, other.successSubtle),
       dangerRed: mix(dangerRed, other.dangerRed),
       warning: mix(warning, other.warning),
-      accentBlue: mix(accentBlue, other.accentBlue),
       textPrimary: mix(textPrimary, other.textPrimary),
       textBody: mix(textBody, other.textBody),
       textSecondary: mix(textSecondary, other.textSecondary),

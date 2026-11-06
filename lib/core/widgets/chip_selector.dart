@@ -104,15 +104,17 @@ class _Chip extends StatelessWidget {
   final bool isSelected;
   final VoidCallback onTap;
 
-  static const double _horizontalPadding = AppSpacing.md;
+  static const double _horizontalPadding = AppSpacing.sm;
   static const double _borderWidth = 1;
 
   /// Width a chip adds around its label.
   static const double horizontalChrome =
       2 * (_horizontalPadding + _borderWidth);
 
+  /// Footnote size, as in an iOS segmented control, so all the options share
+  /// one row at the default text size.
   static TextStyle labelStyle(BuildContext context) =>
-      context.textStyles.bodyStrong;
+      context.textStyles.footnote.copyWith(fontWeight: FontWeight.w600);
 
   @override
   Widget build(BuildContext context) {
@@ -127,15 +129,15 @@ class _Chip extends StatelessWidget {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppRadius.md),
           side: BorderSide(
-            color: isSelected ? colors.actionGreenBorder : colors.borderDefault,
+            color: isSelected ? colors.actionGreenBorder : colors.bgSecondary,
           ),
         ),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: onTap,
           child: Padding(
-            // 9 + 16 line height + 9 matches the design's chip height while
-            // still growing with the text size.
+            // Vertical padding rather than a fixed height, so the chip grows
+            // with the text size.
             padding: const EdgeInsets.symmetric(
               horizontal: _horizontalPadding,
               vertical: AppSpacing.sm + 1,
@@ -144,7 +146,7 @@ class _Chip extends StatelessWidget {
               label,
               textAlign: TextAlign.center,
               style: labelStyle(context).copyWith(
-                color: isSelected ? colors.textPrimary : colors.textSecondary,
+                color: isSelected ? colors.onAction : colors.textSecondary,
               ),
             ),
           ),

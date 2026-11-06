@@ -1,9 +1,10 @@
 import 'dart:ui';
 
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 
 import '../../app/theme/app_theme.dart';
-import 'bordered_card.dart';
+import 'surface_card.dart';
 
 /// A button drawn over the bottom-end corner of a [PhotoFrame], e.g. Retake.
 @immutable
@@ -178,7 +179,7 @@ class _UnavailablePhoto extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
-              Icons.broken_image_outlined,
+              CupertinoIcons.exclamationmark_triangle,
               size: MediaQuery.textScalerOf(context).scale(20),
               color: colors.textSecondary,
             ),
@@ -205,39 +206,47 @@ class _EmptyFrame extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    return BorderedCard.dashed(
+    return SurfaceCard.dashed(
       onTap: onTap,
       semanticLabel: label,
       padding: EdgeInsets.zero,
-      child: AspectRatio(
-        aspectRatio: PhotoFrame._aspectRatio,
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(AppSpacing.lg),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: colors.bgTertiary,
-                    borderRadius: BorderRadius.circular(AppRadius.md),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(AppSpacing.sm),
-                    child: Icon(
-                      Icons.photo_camera_outlined,
-                      size: MediaQuery.textScalerOf(context).scale(20),
-                      color: colors.textSecondary,
+      child: LayoutBuilder(
+        builder: (context, constraints) => ConstrainedBox(
+          // At least the shape of the photo that replaces it, but free to
+          // grow when large text needs more room.
+          constraints: BoxConstraints(
+            minHeight: constraints.maxWidth / PhotoFrame._aspectRatio,
+          ),
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(AppSpacing.lg),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: colors.bgTertiary,
+                      borderRadius: BorderRadius.circular(AppRadius.md),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(AppSpacing.sm),
+                      child: Icon(
+                        CupertinoIcons.camera,
+                        size: MediaQuery.textScalerOf(context).scale(20),
+                        color: colors.textSecondary,
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                Text(
-                  label,
-                  textAlign: TextAlign.center,
-                  style: context.textStyles.bodyStrong,
-                ),
-              ],
+                  const SizedBox(height: AppSpacing.sm),
+                  Text(
+                    label,
+                    textAlign: TextAlign.center,
+                    style: context.textStyles.bodyStrong.copyWith(
+                      color: colors.textPrimary,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

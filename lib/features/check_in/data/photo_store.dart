@@ -2,6 +2,8 @@ import 'dart:io';
 
 import 'package:path/path.dart' as p;
 
+import '../domain/repositories/photo_locator.dart';
+
 /// Keeps check-in photos as files in the app's documents directory.
 ///
 /// Each photo is stored as `photos/<check-in id><extension>`, and callers
@@ -13,7 +15,7 @@ import 'package:path/path.dart' as p;
 /// corrupted database, can't reach a file outside the folder. File system
 /// errors propagate as [FileSystemException]s for the repository to map to
 /// a `StorageFailure`.
-class PhotoStore {
+class PhotoStore implements PhotoLocator {
   const PhotoStore(this._documentsDirectory);
 
   static const _folderName = 'photos';
@@ -52,7 +54,7 @@ class PhotoStore {
     }
   }
 
-  /// The `file:` URI of the photo at [photoPath], for displaying it.
+  @override
   Uri uriOf(String photoPath) => _fileAt(photoPath).uri;
 
   /// Deletes every photo whose path isn't in [keep].
