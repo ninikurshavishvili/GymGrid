@@ -47,7 +47,7 @@ void main() {
     return CheckIn(
       id: '$day',
       date: day,
-      photoPath: photoPath ?? 'photos/$day.jpg',
+      photoPaths: [photoPath ?? 'photos/$day.jpg'],
       workoutType: workoutType,
       note: note,
       createdAt: day.toLocalDateTime().add(

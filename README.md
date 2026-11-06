@@ -8,7 +8,7 @@
 
 **Show up. Snap a photo. Watch your year fill in.**
 
-A daily gym check-in app for iOS and Android. One photo a day fills in a
+A daily gym check-in app for iOS and Android. One check-in a day fills in a
 GitHub-style contribution grid, so you can see your consistency at a glance.
 
 ![Status](https://img.shields.io/badge/status-work%20in%20progress-orange)
@@ -46,10 +46,10 @@ _Screenshots coming soon._
 
 ## Features
 
-- 📸 **Daily check-in**: a camera photo, workout type (strength, cardio, mobility, other) and an optional 280-character note. One per day; checking in again replaces it.
+- 📸 **Daily check-in**: one or more photos, workout type (strength, cardio, mobility, other) and an optional 280-character note. One per day; checking in again replaces it.
 - 🟩 **Year grid**: GitHub-style contribution grid for the calendar year. Tap a filled day to see it.
 - 🔥 **Streaks**: current and longest streak, with an **at risk** warning when you checked in yesterday but not yet today.
-- 📅 **Day detail**: photo, workout type, note and check-in time, with delete.
+- 📅 **Day detail**: photos, workout type, note and check-in time, with add, edit and delete.
 - ✈️ **Fully offline**: no account, no server; everything stays on the device.
 - ♿ **Accessible**: supports Dynamic Type without overflow, and labels everything for VoiceOver and TalkBack.
 
@@ -61,7 +61,7 @@ _Screenshots coming soon._
 - [x] Data layer: SQLite (drift) and photo storage
 - [x] Home screen: streak cards and year grid
 - [x] Check-in flow with the camera
-- [ ] Day detail and delete
+- [x] Day detail: add photos, edit and delete
 - [ ] Android build and testing
 - [ ] App icon and screenshots
 

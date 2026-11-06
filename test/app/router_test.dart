@@ -9,8 +9,11 @@ import 'package:gym_grid/core/date/calendar_day.dart';
 import 'package:gym_grid/core/date/clock.dart';
 import 'package:gym_grid/features/check_in/domain/repositories/check_in_repository.dart';
 import 'package:gym_grid/features/check_in/domain/repositories/photo_locator.dart';
+import 'package:gym_grid/features/check_in/domain/usecases/delete_check_in.dart';
 import 'package:gym_grid/features/check_in/domain/usecases/get_check_in.dart';
 import 'package:gym_grid/features/check_in/domain/usecases/save_check_in.dart';
+import 'package:gym_grid/features/check_in/domain/usecases/update_check_in.dart';
+import 'package:gym_grid/features/check_in/domain/usecases/watch_check_in.dart';
 import 'package:gym_grid/features/check_in/presentation/check_in_screen.dart';
 import 'package:gym_grid/features/check_in/presentation/photo_picker.dart';
 import 'package:gym_grid/features/progress/domain/usecases/watch_progress.dart';
@@ -39,7 +42,10 @@ void main() {
       ..registerSingleton<Clock>(clock)
       ..registerSingleton(WatchProgress(repository: repository, clock: clock))
       ..registerSingleton(SaveCheckIn(repository: repository, clock: clock))
+      ..registerSingleton(UpdateCheckIn(repository: repository))
+      ..registerSingleton(DeleteCheckIn(repository: repository))
       ..registerSingleton(GetCheckIn(repository: repository))
+      ..registerSingleton(WatchCheckIn(repository: repository))
       ..registerSingleton<PhotoPicker>(_MockPhotoPicker())
       ..registerSingleton<PhotoLocator>(_MockPhotoLocator());
     router = createRouter();
@@ -79,22 +85,41 @@ void main() {
   ) async {
     await pumpApp(tester);
 
-    router.go(AppRoutes.dayDetail(DateTime(2026, 2, 7)));
+    router.go(AppRoutes.dayDetail(CalendarDay(2026, 2, 7)));
     await tester.pumpAndSettle();
 
     final screen = tester.widget<DayDetailScreen>(find.byType(DayDetailScreen));
-    expect(screen.day, DateTime(2026, 2, 7));
+    expect(screen.day, CalendarDay(2026, 2, 7));
+  });
+
+  testWidgets('the edit route opens the form for that day', (tester) async {
+    await pumpApp(tester);
+
+    router.go(AppRoutes.editDay(CalendarDay(2026, 2, 7)));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(CheckInScreen), findsOneWidget);
+    expect(find.text('Edit check-in'), findsOneWidget);
+    // Back from the form is the day it edits.
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    expect(find.byType(DayDetailScreen), findsOneWidget);
   });
 
   testWidgets('deep link to day detail keeps home underneath', (tester) async {
     await pumpApp(tester);
 
-    router.go(AppRoutes.dayDetail(DateTime(2026, 2, 7)));
+    router.go(AppRoutes.dayDetail(CalendarDay(2026, 2, 7)));
     await tester.pumpAndSettle();
     expect(router.canPop(), isTrue);
   });
 
-  for (final location in ['/day/2026-13-01', '/day/2026-2-7', '/nowhere']) {
+  for (final location in [
+    '/day/2026-13-01',
+    '/day/2026-2-7',
+    '/day/2026-13-01/edit',
+    '/nowhere',
+  ]) {
     testWidgets('shows not found for $location', (tester) async {
       await pumpApp(tester);
 

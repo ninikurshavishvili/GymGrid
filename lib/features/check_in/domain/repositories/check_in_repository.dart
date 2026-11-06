@@ -1,6 +1,7 @@
 import '../../../../core/date/calendar_day.dart';
 import '../../../../core/errors/failure.dart';
 import '../entities/check_in.dart';
+import '../entities/check_in_edit.dart';
 import '../entities/new_check_in.dart';
 
 /// Stores check-ins, at most one per day.
@@ -19,12 +20,18 @@ abstract interface class CheckInRepository {
   /// The check-in for [date], or null if there is none.
   Future<CheckIn?> findByDate(CalendarDay date);
 
-  /// Stores [checkIn] and its photo, and returns the stored check-in.
+  /// Stores [checkIn] and its photos, and returns the stored check-in.
   ///
-  /// Replaces any existing check-in for the same date, including its photo.
+  /// Replaces any existing check-in for the same date, including its photos.
   Future<CheckIn> save(NewCheckIn checkIn);
 
-  /// Deletes the check-in with [id] and its photo. Does nothing if there is
+  /// Applies [edit] to an existing check-in, and returns the result.
+  ///
+  /// Copies in any newly picked photos and deletes stored ones the edit
+  /// leaves out. Throws a [Failure] if there is no such check-in.
+  Future<CheckIn> update(CheckInEdit edit);
+
+  /// Deletes the check-in with [id] and its photos. Does nothing if there is
   /// no such check-in.
   Future<void> delete(String id);
 }

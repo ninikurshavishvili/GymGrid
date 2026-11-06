@@ -4,9 +4,9 @@ import 'converters.dart';
 
 /// One row per check-in, and at most one per day.
 ///
-/// The photo itself is a file; [photoPath] locates it relative to the app's
-/// documents directory. Keeping images out of SQLite keeps the database
-/// small, like Core Data's "Allows External Storage".
+/// The photos themselves are files; [photoPaths] locates them relative to
+/// the app's documents directory. Keeping images out of SQLite keeps the
+/// database small, like Core Data's "Allows External Storage".
 ///
 /// Rows are named [CheckInRow] so they don't clash with the domain's
 /// `CheckIn` entity, which the repository maps them to.
@@ -18,7 +18,9 @@ class CheckIns extends Table {
   /// Unique, so the database itself enforces one check-in per day.
   TextColumn get day => text().map(const CalendarDayConverter()).unique()();
 
-  TextColumn get photoPath => text()();
+  /// A JSON list rather than a second table: the paths are only ever read
+  /// and written together with their check-in, cover first.
+  TextColumn get photoPaths => text().map(const PhotoPathsConverter())();
 
   TextColumn get workoutType => text().map(const WorkoutTypeConverter())();
 

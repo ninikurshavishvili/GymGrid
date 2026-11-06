@@ -51,8 +51,7 @@ void main() {
   });
 
   group('with a photo', () {
-    testWidgets('shows the caption and a working action', (tester) async {
-      var retakes = 0;
+    testWidgets('shows the caption', (tester) async {
       await pumpThemed(
         tester,
         PhotoFrame(
@@ -60,43 +59,22 @@ void main() {
           semanticLabel: 'Check-in photo',
           caption: '07:42 AM',
           captionAlignment: AlignmentDirectional.topStart,
-          action: PhotoFrameAction(
-            icon: Icons.refresh,
-            label: 'Retake',
-            onPressed: () => retakes++,
-          ),
         ),
       );
 
       expect(find.text('07:42 AM'), findsOneWidget);
-      await tester.tap(find.text('Retake'));
-      expect(retakes, 1);
     });
 
-    testWidgets('describes the photo and its action to screen readers', (
-      tester,
-    ) async {
+    testWidgets('describes the photo to screen readers', (tester) async {
       final semantics = tester.ensureSemantics();
       await pumpThemed(
         tester,
-        PhotoFrame(
-          image: _pixel,
-          semanticLabel: 'Check-in photo',
-          action: PhotoFrameAction(
-            icon: Icons.refresh,
-            label: 'Retake',
-            onPressed: () {},
-          ),
-        ),
+        PhotoFrame(image: _pixel, semanticLabel: 'Check-in photo'),
       );
 
       expect(
         tester.getSemantics(find.bySemanticsLabel('Check-in photo')),
         isSemantics(isImage: true),
-      );
-      expect(
-        tester.getSemantics(find.text('Retake')),
-        isSemantics(isButton: true, hasTapAction: true),
       );
       semantics.dispose();
     });

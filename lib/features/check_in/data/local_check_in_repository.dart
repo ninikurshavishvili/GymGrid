@@ -6,6 +6,8 @@ import 'package:drift/drift.dart';
 import '../../../core/date/calendar_day.dart';
 import '../../../core/errors/failure.dart';
 import '../domain/entities/check_in.dart';
+import '../domain/entities/check_in_edit.dart';
+import '../domain/entities/check_in_photo.dart';
 import '../domain/entities/new_check_in.dart';
 import '../domain/repositories/check_in_repository.dart';
 import 'database/app_database.dart';
@@ -63,10 +65,8 @@ class LocalCheckInRepository implements CheckInRepository {
 
   @override
   Future<CheckIn> save(NewCheckIn checkIn) => _guard(() async {
-    final id = _uuids.v4();
-
-    // 1. Copy the photo before any row refers to it.
-    final photoPath = await _photoStore.save(checkIn.sourcePhotoPath, id: id);
+    // 1. Copy the photos before any row refers to them.
+    final photoPaths = await _copyPhotos(checkIn.sourcePhotoPaths);
 
     // 2. Swap the rows in one transaction, so a failure leaves the day's
     // earlier check-in in place rather than deleting it.
@@ -80,9 +80,9 @@ class LocalCheckInRepository implements CheckInRepository {
             .into(_checkIns)
             .insertReturning(
               CheckInsCompanion.insert(
-                id: id,
+                id: _uuids.v4(),
                 day: checkIn.date,
-                photoPath: photoPath,
+                photoPaths: photoPaths,
                 workoutType: checkIn.workoutType,
                 note: Value(checkIn.note),
                 createdAt: checkIn.createdAt,
@@ -91,16 +91,69 @@ class LocalCheckInRepository implements CheckInRepository {
         return (saved: saved, replaced: replaced);
       });
     } catch (_) {
-      // No row refers to the copy, so remove it. The source is untouched,
-      // so the save can be retried.
-      await _tryDeletePhoto(photoPath);
+      // No row refers to the copies, so remove them. The sources are
+      // untouched, so the save can be retried.
+      await _tryDeletePhotos(photoPaths);
       rethrow;
     }
 
-    // 3. No row refers to the replaced photo any more.
+    // 3. No row refers to the replaced photos any more.
     for (final row in rows.replaced) {
-      await _tryDeletePhoto(row.photoPath);
+      await _tryDeletePhotos(row.photoPaths);
     }
+
+    return _toCheckIn(rows.saved);
+  });
+
+  @override
+  Future<CheckIn> update(CheckInEdit edit) => _guard(() async {
+    // 1. Copy the new photos before any row refers to them.
+    final copies = await _copyPhotos([
+      for (final photo in edit.photos)
+        if (photo case PickedPhoto(:final sourcePath)) sourcePath,
+    ]);
+    final remainingCopies = copies.iterator;
+    final photoPaths = [
+      for (final photo in edit.photos)
+        switch (photo) {
+          StoredPhoto(:final photoPath) => photoPath,
+          PickedPhoto() => (remainingCopies..moveNext()).current,
+        },
+    ];
+
+    // 2. Read and write in one transaction, so the photos found to delete
+    // are the ones this write really replaced.
+    final ({CheckInRow saved, List<String> previousPaths}) rows;
+    try {
+      rows = await _database.transaction(() async {
+        final previous = await (_database.select(
+          _checkIns,
+        )..where((t) => t.id.equals(edit.id))).getSingleOrNull();
+        if (previous == null) {
+          throw StateError('No check-in with id ${edit.id}');
+        }
+
+        final saved =
+            await (_database.update(
+              _checkIns,
+            )..where((t) => t.id.equals(edit.id))).writeReturning(
+              CheckInsCompanion(
+                photoPaths: Value(photoPaths),
+                workoutType: Value(edit.workoutType),
+                note: Value(edit.note),
+              ),
+            );
+        return (saved: saved.single, previousPaths: previous.photoPaths);
+      });
+    } catch (_) {
+      await _tryDeletePhotos(copies);
+      rethrow;
+    }
+
+    // 3. No row refers to the photos the edit removed any more.
+    await _tryDeletePhotos(
+      rows.previousPaths.where((path) => !photoPaths.contains(path)),
+    );
 
     return _toCheckIn(rows.saved);
   });
@@ -112,7 +165,7 @@ class LocalCheckInRepository implements CheckInRepository {
     )..where((t) => t.id.equals(id))).goAndReturn();
 
     for (final row in deleted) {
-      await _tryDeletePhoto(row.photoPath);
+      await _tryDeletePhotos(row.photoPaths);
     }
   });
 
@@ -123,23 +176,42 @@ class LocalCheckInRepository implements CheckInRepository {
   Future<void> deleteUnreferencedPhotos() => _guard(() async {
     final referenced = await _database
         .select(_checkIns)
-        .map((row) => row.photoPath)
+        .map((row) => row.photoPaths)
         .get();
-    await _photoStore.deleteUnreferenced(referenced.toSet());
+    await _photoStore.deleteUnreferenced(
+      referenced.expand((paths) => paths).toSet(),
+    );
   });
 
-  /// Deletes a photo that no row refers to any more.
+  /// Copies the photos at [sourcePaths] into the store and returns their
+  /// paths, in the same order. If one fails, removes those already copied.
+  Future<List<String>> _copyPhotos(List<String> sourcePaths) async {
+    final copies = <String>[];
+    try {
+      for (final sourcePath in sourcePaths) {
+        copies.add(await _photoStore.save(sourcePath, id: _uuids.v4()));
+      }
+      return copies;
+    } catch (_) {
+      await _tryDeletePhotos(copies);
+      rethrow;
+    }
+  }
+
+  /// Deletes photos that no row refers to any more.
   ///
   /// The check-in change has already succeeded by then, so a failure here
   /// isn't reported: the file is left for [deleteUnreferencedPhotos].
-  Future<void> _tryDeletePhoto(String photoPath) async {
-    try {
-      await _photoStore.delete(photoPath);
-    } on FileSystemException {
-      // Removed at the next launch instead.
-    } on ArgumentError {
-      // A path the store rejects, say from a corrupted row, names no file
-      // to delete. Its photo, if any, is removed at the next launch too.
+  Future<void> _tryDeletePhotos(Iterable<String> photoPaths) async {
+    for (final photoPath in photoPaths) {
+      try {
+        await _photoStore.delete(photoPath);
+      } on FileSystemException {
+        // Removed at the next launch instead.
+      } on ArgumentError {
+        // A path the store rejects, say from a corrupted row, names no file
+        // to delete. Its photo, if any, is removed at the next launch too.
+      }
     }
   }
 
@@ -158,7 +230,7 @@ class LocalCheckInRepository implements CheckInRepository {
   static CheckIn _toCheckIn(CheckInRow row) => CheckIn(
     id: row.id,
     date: row.day,
-    photoPath: row.photoPath,
+    photoPaths: row.photoPaths,
     workoutType: row.workoutType,
     note: row.note,
     createdAt: row.createdAt,

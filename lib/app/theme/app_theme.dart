@@ -167,4 +167,9 @@ extension AppThemeContext on BuildContext {
   /// `dynamicTypeSize.isAccessibilitySize`.
   bool get usesAccessibilityTextSize =>
       MediaQuery.textScalerOf(this).scale(1) >= 1.6;
+
+  /// How long an interface animation should take: [AppDurations.quick], or
+  /// nothing when the user has turned on Reduce Motion.
+  Duration get motionDuration =>
+      MediaQuery.disableAnimationsOf(this) ? Duration.zero : AppDurations.quick;
 }

@@ -106,7 +106,7 @@ class _Content extends StatelessWidget {
   final bool hasBottomBar;
 
   void _openDay(BuildContext context, CalendarDay day) {
-    unawaited(context.push(AppRoutes.dayDetail(day.toLocalDateTime())));
+    unawaited(context.push(AppRoutes.dayDetail(day)));
   }
 
   @override

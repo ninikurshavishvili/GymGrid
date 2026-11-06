@@ -2,6 +2,9 @@ import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+/// Why the last attempt to get a photo failed.
+enum PhotoProblem { cameraUnavailable, libraryUnavailable }
+
 /// Thrown when the camera or photo library can't supply a photo, such as
 /// when camera access is off.
 class PhotoUnavailable implements Exception {

@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:flutter/cupertino.dart'
     show
@@ -7,7 +6,6 @@ import 'package:flutter/cupertino.dart'
         CupertinoAlertDialog,
         CupertinoButton,
         CupertinoDialogAction,
-        CupertinoIcons,
         CupertinoNavigationBar,
         showCupertinoDialog;
 import 'package:flutter/material.dart';
@@ -16,22 +14,33 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/theme/app_theme.dart';
-import '../../../core/widgets/chip_selector.dart';
 import '../../../core/widgets/photo_frame.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../domain/entities/check_in.dart';
-import '../domain/entities/workout_type.dart';
+import '../domain/repositories/photo_locator.dart';
 import 'check_in_cubit.dart';
+import 'check_in_display.dart';
 import 'check_in_state.dart';
+import 'widgets/note_suggestions.dart';
+import 'widgets/photo_problem_message.dart';
+import 'widgets/photo_source_sheet.dart';
+import 'widgets/photo_strip.dart';
+import 'widgets/workout_type_picker.dart';
 import 'workout_type_labels.dart';
 
-/// Today's check-in: a photo, a workout type and an optional note.
+/// The check-in form: photos, a workout type and an optional note, for a new
+/// check-in or an existing one.
 ///
 /// Shown as a modal with Cancel at the top and the one action pinned at the
-/// bottom, which stays above the keyboard. The home screen updates by itself
-/// after a save, through the database stream, so this only has to close.
+/// bottom, which stays above the keyboard. The form responds as it's filled
+/// in: the note's prompt and suggestions follow the workout type, and the
+/// button says what's still needed. Screens showing check-ins update by
+/// themselves after a save, through the database stream, so this only has
+/// to close.
 class CheckInScreen extends StatefulWidget {
-  const CheckInScreen({super.key});
+  const CheckInScreen({required this.photoLocator, super.key});
+
+  final PhotoLocator photoLocator;
 
   @override
   State<CheckInScreen> createState() => _CheckInScreenState();
@@ -48,16 +57,39 @@ class _CheckInScreenState extends State<CheckInScreen> {
     super.dispose();
   }
 
-  void _onSaved(BuildContext context, CheckInState state) {
-    unawaited(HapticFeedback.mediumImpact());
-    context.pop();
+  void _onStatusChanged(BuildContext context, CheckInState state) {
+    switch (state.status) {
+      case CheckInStatus.saved:
+        unawaited(HapticFeedback.mediumImpact());
+        context.pop();
+      case CheckInStatus.editing when state.original != null:
+        // The check-in being edited has just loaded.
+        _noteController.text = state.note;
+      case _:
+        break;
+    }
   }
 
-  Future<void> _confirmDiscard() async {
+  void _addSuggestion(String suggestion) {
+    final current = _noteController.text.trimRight();
+    final note = current.isEmpty ? suggestion : '$current, $suggestion';
+    if (note.characters.length > CheckIn.maxNoteLength) return;
+
+    _noteController.value = TextEditingValue(
+      text: note,
+      selection: TextSelection.collapsed(offset: note.length),
+    );
+    context.read<CheckInCubit>().noteChanged(note);
+    unawaited(HapticFeedback.selectionClick());
+  }
+
+  Future<void> _confirmDiscard(CheckInState state) async {
     final discard = await showCupertinoDialog<bool>(
       context: context,
       builder: (context) => CupertinoAlertDialog(
-        title: const Text('Discard this check-in?'),
+        title: Text(
+          state.isEditing ? 'Discard your changes?' : 'Discard this check-in?',
+        ),
         actions: [
           CupertinoDialogAction(
             isDefaultAction: true,
@@ -79,17 +111,17 @@ class _CheckInScreenState extends State<CheckInScreen> {
   @override
   Widget build(BuildContext context) {
     return BlocConsumer<CheckInCubit, CheckInState>(
-      listenWhen: (previous, current) =>
-          previous.status != current.status &&
-          current.status == CheckInStatus.saved,
-      listener: _onSaved,
+      listenWhen: (previous, current) => previous.status != current.status,
+      listener: _onStatusChanged,
       builder: (context, state) {
         // PopScope is Flutter's `isModalInPresentation`: it holds a leave
         // attempt back so the screen can ask first.
         return PopScope(
-          canPop: !state.hasDraft,
+          canPop: !state.hasUnsavedChanges,
           onPopInvokedWithResult: (didPop, _) {
-            if (!didPop && !state.isSaving) unawaited(_confirmDiscard());
+            if (!didPop && !state.isSaving) {
+              unawaited(_confirmDiscard(state));
+            }
           },
           child: Scaffold(
             appBar: CupertinoNavigationBar(
@@ -101,19 +133,30 @@ class _CheckInScreenState extends State<CheckInScreen> {
                     : () => unawaited(Navigator.of(context).maybePop()),
                 child: const Text('Cancel'),
               ),
-              middle: const Text('Check in'),
+              middle: Text(state.isEditing ? 'Edit check-in' : 'Check in'),
               backgroundColor: context.colors.bgPrimary,
               border: null,
               transitionBetweenRoutes: false,
             ),
-            body: Column(
-              children: [
-                Expanded(
-                  child: _Form(state: state, noteController: _noteController),
-                ),
-                _SaveBar(state: state),
-              ],
-            ),
+            body: switch (state.status) {
+              CheckInStatus.loading => const Center(
+                child: CupertinoActivityIndicator(),
+              ),
+              CheckInStatus.loadFailed => const _LoadFailedMessage(),
+              _ => Column(
+                children: [
+                  Expanded(
+                    child: _Form(
+                      state: state,
+                      photoLocator: widget.photoLocator,
+                      noteController: _noteController,
+                      onSuggestionSelected: _addSuggestion,
+                    ),
+                  ),
+                  _SaveBar(state: state),
+                ],
+              ),
+            },
           ),
         );
       },
@@ -122,85 +165,144 @@ class _CheckInScreenState extends State<CheckInScreen> {
 }
 
 class _Form extends StatelessWidget {
-  const _Form({required this.state, required this.noteController});
+  const _Form({
+    required this.state,
+    required this.photoLocator,
+    required this.noteController,
+    required this.onSuggestionSelected,
+  });
 
   final CheckInState state;
+  final PhotoLocator photoLocator;
   final TextEditingController noteController;
+  final ValueChanged<String> onSuggestionSelected;
+
+  Future<void> _addPhoto(BuildContext context) async {
+    final cubit = context.read<CheckInCubit>();
+    final source = await showPhotoSourceSheet(context);
+    switch (source) {
+      case PhotoSource.camera:
+        await cubit.takePhoto();
+      case PhotoSource.library:
+        await cubit.pickFromLibrary();
+      case null:
+        break;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final cubit = context.read<CheckInCubit>();
     final colors = context.colors;
     final text = context.textStyles;
-    final photoPath = state.photoPath;
     final photoProblem = state.photoProblem;
+    final duration = context.motionDuration;
 
     return ListView(
       padding: const EdgeInsets.all(AppSpacing.lg),
       keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       children: [
-        Stack(
-          children: [
-            PhotoFrame(
-              image: photoPath == null ? null : FileImage(File(photoPath)),
-              semanticLabel: "Today's check-in photo",
-              emptyLabel: "Tap to take today's photo",
-              onTapEmpty: cubit.takePhoto,
-              action: photoPath == null
-                  ? null
-                  : PhotoFrameAction(
-                      icon: CupertinoIcons.camera,
-                      label: 'Retake',
-                      onPressed: cubit.takePhoto,
-                    ),
+        AnimatedSwitcher(
+          duration: duration,
+          child: state.photos.isEmpty
+              ? _FirstPhoto(
+                  isPicking: state.isPickingPhoto,
+                  onTakePhoto: cubit.takePhoto,
+                  onPickFromLibrary: cubit.pickFromLibrary,
+                )
+              : PhotoStrip(
+                  photos: state.photos,
+                  imageOf: photoLocator.imageOfPhoto,
+                  canAdd: state.canAddPhoto,
+                  isAdding: state.isPickingPhoto,
+                  onAdd: () => unawaited(_addPhoto(context)),
+                  onRemove: cubit.removePhoto,
+                ),
+        ),
+        if (photoProblem != null)
+          Padding(
+            padding: const EdgeInsets.only(top: AppSpacing.sm),
+            child: PhotoProblemMessage(
+              problem: photoProblem,
+              onOpenSettings: cubit.openSettings,
             ),
-            if (state.isPickingPhoto)
-              const Positioned.fill(child: _PhotoLoading()),
-          ],
-        ),
-        // Always here rather than only after the camera fails: the plugin
-        // reports no failure on a device without a camera, and a photo taken
-        // earlier at the gym is a fair check-in too.
-        Center(
-          child: TextButton(
-            onPressed: cubit.pickFromLibrary,
-            child: const Text('Choose from library'),
           ),
-        ),
-        if (photoProblem != null) _PhotoProblemMessage(problem: photoProblem),
-        const SizedBox(height: AppSpacing.md),
-        Text(
-          'Workout type',
-          style: text.footnote.copyWith(color: colors.textSecondary),
-        ),
-        const SizedBox(height: AppSpacing.sm),
-        ChipSelector<WorkoutType>(
-          options: WorkoutType.values,
+        const SizedBox(height: AppSpacing.xl),
+        WorkoutTypePicker(
           selected: state.workoutType,
-          labelOf: (workoutType) => workoutType.label,
           onSelected: cubit.selectWorkoutType,
         ),
-        const SizedBox(height: AppSpacing.xl),
+        const SizedBox(height: AppSpacing.md),
+        NoteSuggestions(
+          workoutType: state.workoutType,
+          note: state.note,
+          onSelected: onSuggestionSelected,
+        ),
         TextField(
           controller: noteController,
           onChanged: cubit.noteChanged,
           onTapOutside: (_) => FocusScope.of(context).unfocus(),
           maxLength: CheckIn.maxNoteLength,
-          minLines: 3,
+          // The limit only matters once there's something to count.
+          buildCounter:
+              (
+                context, {
+                required currentLength,
+                required isFocused,
+                required maxLength,
+              }) => currentLength == 0
+              ? null
+              : Text(
+                  '$currentLength/$maxLength',
+                  style: text.footnote.copyWith(color: colors.textSecondary),
+                ),
+          minLines: 2,
           maxLines: 6,
           keyboardType: TextInputType.multiline,
           textCapitalization: TextCapitalization.sentences,
-          decoration: const InputDecoration(hintText: 'Note (optional)'),
-        ),
-        if (state.isReplacingToday)
-          Padding(
-            padding: const EdgeInsets.only(top: AppSpacing.xs),
-            child: Text(
-              "This replaces today's check-in.",
-              textAlign: TextAlign.center,
-              style: text.footnote.copyWith(color: colors.textSecondary),
-            ),
+          decoration: InputDecoration(
+            hintText: state.workoutType?.notePrompt ?? 'Add a note (optional)',
           ),
+        ),
+      ],
+    );
+  }
+}
+
+/// The photo area before there's a photo: one big target for the camera.
+class _FirstPhoto extends StatelessWidget {
+  const _FirstPhoto({
+    required this.isPicking,
+    required this.onTakePhoto,
+    required this.onPickFromLibrary,
+  });
+
+  final bool isPicking;
+  final VoidCallback onTakePhoto;
+  final VoidCallback onPickFromLibrary;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Stack(
+          children: [
+            PhotoFrame(
+              image: null,
+              semanticLabel: "Today's check-in photo",
+              emptyLabel: "Tap to take today's photo",
+              onTapEmpty: onTakePhoto,
+            ),
+            if (isPicking) const Positioned.fill(child: _PhotoLoading()),
+          ],
+        ),
+        // Always here rather than only after the camera fails: the plugin
+        // reports no failure on a device without a camera, and a photo taken
+        // earlier at the gym is a fair check-in too.
+        TextButton(
+          onPressed: onPickFromLibrary,
+          child: const Text('Choose from library'),
+        ),
       ],
     );
   }
@@ -227,50 +329,38 @@ class _PhotoLoading extends StatelessWidget {
   }
 }
 
-class _PhotoProblemMessage extends StatelessWidget {
-  const _PhotoProblemMessage({required this.problem});
-
-  final PhotoProblem problem;
+class _LoadFailedMessage extends StatelessWidget {
+  const _LoadFailedMessage();
 
   @override
   Widget build(BuildContext context) {
-    final message = switch (problem) {
-      PhotoProblem.cameraUnavailable =>
-        'Camera access is off. Enable it in Settings, or choose a photo from '
-            'your library.',
-      PhotoProblem.libraryUnavailable =>
-        "That photo couldn't be opened. Try another one.",
-    };
-
-    return Column(
-      children: [
-        // A live region, so VoiceOver reads this out when it appears.
-        Semantics(
-          liveRegion: true,
-          child: Text(
-            message,
-            textAlign: TextAlign.center,
-            style: context.textStyles.footnote.copyWith(
-              color: context.colors.warning,
-            ),
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.xl),
+        child: Text(
+          "Couldn't load this check-in",
+          textAlign: TextAlign.center,
+          style: context.textStyles.bodyStrong.copyWith(
+            color: context.colors.textPrimary,
           ),
         ),
-        if (problem == PhotoProblem.cameraUnavailable)
-          TextButton(
-            onPressed: context.read<CheckInCubit>().openSettings,
-            child: const Text('Open Settings'),
-          ),
-      ],
+      ),
     );
   }
 }
 
-/// The pinned Save button, with room above it for an error it can't lose to
-/// scrolling.
+/// The pinned button, which says what's still needed until the form can be
+/// saved, with room above it for an error it can't lose to scrolling.
 class _SaveBar extends StatelessWidget {
   const _SaveBar({required this.state});
 
   final CheckInState state;
+
+  String get _label {
+    if (state.photos.isEmpty) return 'Add a photo to continue';
+    if (state.workoutType == null) return 'Choose a workout';
+    return state.isEditing ? 'Save changes' : 'Save check-in';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -299,7 +389,7 @@ class _SaveBar extends StatelessWidget {
                 ),
               ),
             PrimaryButton(
-              label: 'Save',
+              label: _label,
               isLoading: state.isSaving,
               onPressed: state.canSave
                   ? context.read<CheckInCubit>().save

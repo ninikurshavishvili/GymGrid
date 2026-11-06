@@ -6,25 +6,11 @@ import 'package:flutter/material.dart';
 import '../../app/theme/app_theme.dart';
 import 'surface_card.dart';
 
-/// A button drawn over the bottom-end corner of a [PhotoFrame], e.g. Retake.
-@immutable
-class PhotoFrameAction {
-  const PhotoFrameAction({
-    required this.icon,
-    required this.label,
-    required this.onPressed,
-  });
-
-  final IconData icon;
-  final String label;
-  final VoidCallback onPressed;
-}
-
 /// A 4:3 rounded photo with optional overlays.
 ///
-/// With an [image] it shows the photo cropped to fill, an optional [caption]
-/// pill and an optional [action] button. Without one it shows a dashed
-/// placeholder that calls [onTapEmpty], used before a photo is taken. A photo
+/// With an [image] it shows the photo cropped to fill and an optional
+/// [caption] pill. Without one it shows a dashed placeholder that calls
+/// [onTapEmpty], used before a photo is taken. A photo
 /// that fails to load (for example, its file was removed) shows an
 /// "unavailable" state rather than an error.
 class PhotoFrame extends StatelessWidget {
@@ -34,7 +20,6 @@ class PhotoFrame extends StatelessWidget {
     super.key,
     this.caption,
     this.captionAlignment = AlignmentDirectional.bottomStart,
-    this.action,
     this.onTapEmpty,
     this.emptyLabel = 'Take a photo',
   });
@@ -48,11 +33,9 @@ class PhotoFrame extends StatelessWidget {
   /// Short overlay text such as the check-in time.
   final String? caption;
 
-  /// Where [caption] sits. Keep it away from the bottom-end corner when an
-  /// [action] is shown.
+  /// Where [caption] sits.
   final AlignmentGeometry captionAlignment;
 
-  final PhotoFrameAction? action;
   final VoidCallback? onTapEmpty;
   final String emptyLabel;
 
@@ -95,35 +78,6 @@ class PhotoFrame extends StatelessWidget {
                       style: context.textStyles.badge.copyWith(
                         color: colors.textBody,
                       ),
-                    ),
-                  ),
-                ),
-              ),
-            if (action case final action?)
-              Align(
-                alignment: AlignmentDirectional.bottomEnd,
-                child: Padding(
-                  padding: const EdgeInsets.all(_overlayInset),
-                  child: _OverlayPill(
-                    onTap: action.onPressed,
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          action.icon,
-                          size: MediaQuery.textScalerOf(context).scale(14),
-                          color: colors.textPrimary,
-                        ),
-                        const SizedBox(width: AppSpacing.xs + 2),
-                        Flexible(
-                          child: Text(
-                            action.label,
-                            style: context.textStyles.bodyStrong.copyWith(
-                              color: colors.textPrimary,
-                            ),
-                          ),
-                        ),
-                      ],
                     ),
                   ),
                 ),
@@ -255,50 +209,37 @@ class _EmptyFrame extends StatelessWidget {
   }
 }
 
-/// Blurred, translucent pill for text and buttons laid over a photo.
+/// Blurred, translucent pill for text laid over a photo.
 class _OverlayPill extends StatelessWidget {
-  const _OverlayPill({required this.child, this.onTap});
+  const _OverlayPill({required this.child});
 
   final Widget child;
-  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    final radius = BorderRadius.circular(
-      onTap == null ? AppRadius.sm : AppRadius.md,
-    );
+    final radius = BorderRadius.circular(AppRadius.sm);
 
-    final pill = ClipRRect(
+    return ClipRRect(
       borderRadius: radius,
       // Equivalent of a UIVisualEffectView behind the label.
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
-        child: Material(
-          color: colors.overlayScrim,
-          shape: RoundedRectangleBorder(
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: colors.overlayScrim,
             borderRadius: radius,
-            side: BorderSide(color: colors.overlayBorder),
+            border: Border.all(color: colors.overlayBorder),
           ),
-          child: InkWell(
-            onTap: onTap,
-            child: Padding(
-              padding: onTap == null
-                  ? const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.sm + 1,
-                      vertical: AppSpacing.xs + 1,
-                    )
-                  : const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.md + 1,
-                      vertical: AppSpacing.sm - 1,
-                    ),
-              child: child,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.sm + 1,
+              vertical: AppSpacing.xs + 1,
             ),
+            child: child,
           ),
         ),
       ),
     );
-
-    return onTap == null ? pill : Semantics(button: true, child: pill);
   }
 }

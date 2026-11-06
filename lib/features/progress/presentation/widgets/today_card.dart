@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 
@@ -7,6 +5,7 @@ import '../../../../app/theme/app_theme.dart';
 import '../../../../core/widgets/surface_card.dart';
 import '../../../check_in/domain/entities/check_in.dart';
 import '../../../check_in/domain/repositories/photo_locator.dart';
+import '../../../check_in/presentation/check_in_display.dart';
 import '../../../check_in/presentation/workout_type_labels.dart';
 import '../../domain/entities/progress.dart';
 
@@ -30,21 +29,11 @@ class TodayCard extends StatelessWidget {
     if (progress.todaysCheckIn case final checkIn?) {
       return _CheckedIn(
         checkIn: checkIn,
-        photoUri: _photoUriOf(checkIn),
+        cover: photoLocator.imageOf(checkIn.coverPhotoPath),
         onOpen: onOpen,
       );
     }
     return _NotCheckedIn(progress: progress);
-  }
-
-  /// Null if the stored path can't be located: only a damaged database could
-  /// hold one, and the rest of the check-in is still worth showing.
-  Uri? _photoUriOf(CheckIn checkIn) {
-    try {
-      return photoLocator.uriOf(checkIn.photoPath);
-    } on ArgumentError {
-      return null;
-    }
   }
 }
 
@@ -86,12 +75,12 @@ class _NotCheckedIn extends StatelessWidget {
 class _CheckedIn extends StatelessWidget {
   const _CheckedIn({
     required this.checkIn,
-    required this.photoUri,
+    required this.cover,
     required this.onOpen,
   });
 
   final CheckIn checkIn;
-  final Uri? photoUri;
+  final ImageProvider cover;
   final VoidCallback onOpen;
 
   @override
@@ -99,14 +88,11 @@ class _CheckedIn extends StatelessWidget {
     final colors = context.colors;
     final text = context.textStyles;
 
-    final time = MaterialLocalizations.of(context).formatTimeOfDay(
-      TimeOfDay.fromDateTime(checkIn.createdAt.toLocal()),
-      alwaysUse24HourFormat: MediaQuery.alwaysUse24HourFormatOf(context),
-    );
+    final time = checkIn.timeLabel(context);
     final workout = checkIn.workoutType.label;
     final note = checkIn.note?.split('\n').first;
 
-    final thumbnail = _Thumbnail(uri: photoUri);
+    final thumbnail = _Thumbnail(image: cover);
     final details = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       spacing: AppSpacing.xxs,
@@ -170,19 +156,14 @@ class _CheckedIn extends StatelessWidget {
 }
 
 class _Thumbnail extends StatelessWidget {
-  const _Thumbnail({required this.uri});
+  const _Thumbnail({required this.image});
 
-  final Uri? uri;
+  final ImageProvider image;
 
   static const double _size = 56;
 
   @override
   Widget build(BuildContext context) {
-    final uri = this.uri;
-    final placeholder = Center(
-      child: Icon(CupertinoIcons.photo, color: context.colors.textSecondary),
-    );
-
     return ClipRRect(
       borderRadius: BorderRadius.circular(AppRadius.md),
       child: SizedBox.square(
@@ -190,17 +171,22 @@ class _Thumbnail extends StatelessWidget {
         // The fill also shows for the moment the photo takes to decode.
         child: ColoredBox(
           color: context.colors.bgTertiary,
-          child: uri == null
-              ? placeholder
-              : Image.file(
-                  File.fromUri(uri),
-                  fit: BoxFit.cover,
-                  // Decoded at the size it's shown, not at camera resolution.
-                  cacheWidth: (_size * MediaQuery.devicePixelRatioOf(context))
-                      .round(),
-                  excludeFromSemantics: true,
-                  errorBuilder: (context, error, stackTrace) => placeholder,
-                ),
+          child: Image(
+            // Decoded at the size it's shown, not at camera resolution.
+            image: ResizeImage.resizeIfNeeded(
+              (_size * MediaQuery.devicePixelRatioOf(context)).round(),
+              null,
+              image,
+            ),
+            fit: BoxFit.cover,
+            excludeFromSemantics: true,
+            errorBuilder: (context, error, stackTrace) => Center(
+              child: Icon(
+                CupertinoIcons.photo,
+                color: context.colors.textSecondary,
+              ),
+            ),
+          ),
         ),
       ),
     );
