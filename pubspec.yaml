@@ -38,6 +38,10 @@ dependencies:
   url_launcher: ^6.3.3
   package_info_plus: ^10.2.2
 
+  # The Trends line chart, like Swift Charts. Pure Dart, so it adds no
+  # native code or privacy manifest entries.
+  fl_chart: ^1.3.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

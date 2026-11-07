@@ -27,6 +27,8 @@ class AppColors extends ThemeExtension<AppColors> {
     required this.textMuted,
     required this.overlayScrim,
     required this.overlayBorder,
+    required this.chartEffort,
+    required this.chartEnergy,
   });
 
   static const AppColors dark = AppColors(
@@ -48,6 +50,8 @@ class AppColors extends ThemeExtension<AppColors> {
     textMuted: Color(0xFF48484A),
     overlayScrim: Color(0xB3000000),
     overlayBorder: Color(0x1AFFFFFF),
+    chartEffort: Color(0xFF30D158),
+    chartEnergy: Color(0xFF0A84FF),
   );
 
   /// Screen background.
@@ -106,6 +110,13 @@ class AppColors extends ThemeExtension<AppColors> {
   /// Hairline outline around [overlayScrim] elements.
   final Color overlayBorder;
 
+  /// The effort line on the Trends chart: the app's green, drawn solid.
+  final Color chartEffort;
+
+  /// The energy line on the Trends chart: Apple's blue, drawn dashed, so
+  /// the two lines differ by more than colour.
+  final Color chartEnergy;
+
   @override
   AppColors copyWith({
     Color? bgPrimary,
@@ -126,6 +137,8 @@ class AppColors extends ThemeExtension<AppColors> {
     Color? textMuted,
     Color? overlayScrim,
     Color? overlayBorder,
+    Color? chartEffort,
+    Color? chartEnergy,
   }) {
     return AppColors(
       bgPrimary: bgPrimary ?? this.bgPrimary,
@@ -146,6 +159,8 @@ class AppColors extends ThemeExtension<AppColors> {
       textMuted: textMuted ?? this.textMuted,
       overlayScrim: overlayScrim ?? this.overlayScrim,
       overlayBorder: overlayBorder ?? this.overlayBorder,
+      chartEffort: chartEffort ?? this.chartEffort,
+      chartEnergy: chartEnergy ?? this.chartEnergy,
     );
   }
 
@@ -172,6 +187,8 @@ class AppColors extends ThemeExtension<AppColors> {
       textMuted: mix(textMuted, other.textMuted),
       overlayScrim: mix(overlayScrim, other.overlayScrim),
       overlayBorder: mix(overlayBorder, other.overlayBorder),
+      chartEffort: mix(chartEffort, other.chartEffort),
+      chartEnergy: mix(chartEnergy, other.chartEnergy),
     );
   }
 }

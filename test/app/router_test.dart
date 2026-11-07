@@ -19,9 +19,11 @@ import 'package:gym_grid/features/check_in/presentation/check_in_screen.dart';
 import 'package:gym_grid/features/check_in/presentation/photo_picker.dart';
 import 'package:gym_grid/features/progress/domain/usecases/watch_history.dart';
 import 'package:gym_grid/features/progress/domain/usecases/watch_progress.dart';
+import 'package:gym_grid/features/progress/domain/usecases/watch_trends.dart';
 import 'package:gym_grid/features/progress/presentation/day_detail_screen.dart';
 import 'package:gym_grid/features/progress/presentation/history_screen.dart';
 import 'package:gym_grid/features/progress/presentation/home_screen.dart';
+import 'package:gym_grid/features/progress/presentation/trends_screen.dart';
 import 'package:gym_grid/features/settings/presentation/link_opener.dart';
 import 'package:gym_grid/features/settings/presentation/settings_screen.dart';
 import 'package:mocktail/mocktail.dart';
@@ -48,6 +50,7 @@ void main() {
       ..registerSingleton<Clock>(clock)
       ..registerSingleton(WatchProgress(repository: repository, clock: clock))
       ..registerSingleton(WatchHistory(repository: repository))
+      ..registerSingleton(WatchTrends(repository: repository, clock: clock))
       ..registerSingleton(DeleteAllCheckIns(repository: repository))
       ..registerSingleton<LinkOpener>(const LinkOpener())
       ..registerSingleton(
@@ -108,6 +111,20 @@ void main() {
     await tester.tap(find.bySemanticsLabel('Back'));
     await tester.pumpAndSettle();
     expect(find.byType(HistoryScreen), findsNothing);
+    expect(find.byType(HomeScreen), findsOneWidget);
+  });
+
+  testWidgets('trends opens over home and Back returns to it', (tester) async {
+    await pumpApp(tester);
+
+    unawaited(router.push(AppRoutes.trends));
+    await tester.pumpAndSettle();
+    expect(find.byType(TrendsScreen), findsOneWidget);
+    expect(find.text('No ratings yet'), findsOneWidget);
+
+    await tester.tap(find.bySemanticsLabel('Back'));
+    await tester.pumpAndSettle();
+    expect(find.byType(TrendsScreen), findsNothing);
     expect(find.byType(HomeScreen), findsOneWidget);
   });
 
