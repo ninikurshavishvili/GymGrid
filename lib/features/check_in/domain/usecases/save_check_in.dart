@@ -4,6 +4,7 @@ import '../../../../core/errors/failure.dart';
 import '../entities/check_in.dart';
 import '../entities/new_check_in.dart';
 import '../entities/other_activity.dart';
+import '../entities/rating.dart';
 import '../entities/workout_type.dart';
 import '../repositories/check_in_repository.dart';
 
@@ -22,8 +23,8 @@ class SaveCheckIn {
   final CheckInRepository _repository;
   final Clock _clock;
 
-  /// Stores the photos at [sourcePhotoPaths] with [workoutType], [activity]
-  /// and [note].
+  /// Stores the photos at [sourcePhotoPaths] with [workoutType], [activity],
+  /// [note], [effort] and [energy].
   ///
   /// [activity] is kept only for an Other workout, and a blank [note] is
   /// stored as no note. Throws a [Failure] if the
@@ -33,6 +34,8 @@ class SaveCheckIn {
     required WorkoutType workoutType,
     OtherActivity? activity,
     String? note,
+    Rating? effort,
+    Rating? energy,
   }) async {
     // Read the clock once so the day and time can't straddle midnight.
     final now = _clock.now();
@@ -44,6 +47,8 @@ class SaveCheckIn {
         workoutType: workoutType,
         activity: CheckIn.activityFor(workoutType, activity),
         note: CheckIn.cleanNote(note),
+        effort: effort,
+        energy: energy,
         createdAt: now,
       ),
     );

@@ -86,6 +86,8 @@ class LocalCheckInRepository implements CheckInRepository {
                 workoutType: checkIn.workoutType,
                 activity: Value(checkIn.activity),
                 note: Value(checkIn.note),
+                effort: Value(checkIn.effort),
+                energy: Value(checkIn.energy),
                 createdAt: checkIn.createdAt,
               ),
             );
@@ -143,6 +145,8 @@ class LocalCheckInRepository implements CheckInRepository {
                 workoutType: Value(edit.workoutType),
                 activity: Value(edit.activity),
                 note: Value(edit.note),
+                effort: Value(edit.effort),
+                energy: Value(edit.energy),
               ),
             );
         return (saved: saved.single, previousPaths: previous.photoPaths);
@@ -244,6 +248,8 @@ class LocalCheckInRepository implements CheckInRepository {
     workoutType: row.workoutType,
     activity: row.activity,
     note: row.note,
+    effort: row.effort,
+    energy: row.energy,
     createdAt: row.createdAt,
   );
 }

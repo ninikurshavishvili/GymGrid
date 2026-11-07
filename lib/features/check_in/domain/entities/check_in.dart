@@ -2,9 +2,11 @@ import 'package:equatable/equatable.dart';
 
 import '../../../../core/date/calendar_day.dart';
 import 'other_activity.dart';
+import 'rating.dart';
 import 'workout_type.dart';
 
-/// A day's gym check-in: its photos, the kind of workout and an optional note.
+/// A day's gym check-in: its photos, the kind of workout, and optionally a
+/// note and how hard it was and how much energy the user had.
 ///
 /// There is at most one check-in per [date].
 class CheckIn extends Equatable {
@@ -16,6 +18,8 @@ class CheckIn extends Equatable {
     required this.createdAt,
     this.activity,
     this.note,
+    this.effort,
+    this.energy,
   }) : assert(
          activity == null || workoutType == WorkoutType.other,
          'Only an Other workout has an activity',
@@ -55,6 +59,12 @@ class CheckIn extends Equatable {
   /// Null when the user left the note empty; never blank.
   final String? note;
 
+  /// How hard the workout was, or null if the user didn't say.
+  final Rating? effort;
+
+  /// How much energy the user had, or null if they didn't say.
+  final Rating? energy;
+
   /// When the check-in was saved, shown as the check-in time.
   final DateTime createdAt;
 
@@ -82,6 +92,8 @@ class CheckIn extends Equatable {
     workoutType,
     activity,
     note,
+    effort,
+    energy,
     createdAt,
   ];
 }

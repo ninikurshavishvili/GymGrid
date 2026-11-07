@@ -174,6 +174,9 @@ class CheckInCubit extends Cubit<CheckInState> {
           workoutType: workoutType,
           activity: state.activity,
           note: state.note,
+          // The form can't change these yet, so an edit keeps them.
+          effort: original.effort,
+          energy: original.energy,
         );
       }
       if (isClosed) return;

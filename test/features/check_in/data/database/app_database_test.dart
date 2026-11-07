@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:gym_grid/core/date/calendar_day.dart';
 import 'package:gym_grid/features/check_in/data/database/app_database.dart';
 import 'package:gym_grid/features/check_in/domain/entities/other_activity.dart';
+import 'package:gym_grid/features/check_in/domain/entities/rating.dart';
 import 'package:gym_grid/features/check_in/domain/entities/workout_type.dart';
 
 void main() {
@@ -95,6 +96,66 @@ void main() {
     );
   });
 
+  test('stores effort and energy as percentages and reads them back', () async {
+    await db
+        .into(db.checkIns)
+        .insert(
+          row().copyWith(
+            effort: const Value(Rating.high),
+            energy: const Value(Rating.veryLow),
+          ),
+        );
+
+    final raw = await db
+        .customSelect('SELECT effort, energy FROM check_ins')
+        .getSingle();
+    expect(raw.read<int>('effort'), 80);
+    expect(raw.read<int>('energy'), 20);
+    final stored = await db.select(db.checkIns).getSingle();
+    expect(stored.effort, Rating.high);
+    expect(stored.energy, Rating.veryLow);
+  });
+
+  test('stores every rating as its own percentage', () async {
+    for (final (index, rating) in Rating.values.indexed) {
+      await db
+          .into(db.checkIns)
+          .insert(
+            row(
+              id: '$index',
+              day: CalendarDay(2026, 10, 1 + index),
+            ).copyWith(effort: Value(rating)),
+          );
+    }
+
+    final raw = await db
+        .customSelect('SELECT effort FROM check_ins ORDER BY day')
+        .get();
+    expect(raw.map((row) => row.read<int>('effort')), [20, 40, 60, 80, 100]);
+    final rows = await (db.select(
+      db.checkIns,
+    )..orderBy([(t) => OrderingTerm(expression: t.day)])).get();
+    expect(rows.map((row) => row.effort), Rating.values);
+  });
+
+  test('leaves effort and energy empty when not rated', () async {
+    await db.into(db.checkIns).insert(row());
+
+    final stored = await db.select(db.checkIns).getSingle();
+    expect(stored.effort, isNull);
+    expect(stored.energy, isNull);
+  });
+
+  test('refuses to read a rating it does not know', () async {
+    await db.into(db.checkIns).insert(row());
+    await db.customStatement('UPDATE check_ins SET effort = 50');
+
+    await expectLater(
+      db.select(db.checkIns).get(),
+      throwsA(isA<FormatException>()),
+    );
+  });
+
   test('rejects a second check-in for the same day', () async {
     await db.into(db.checkIns).insert(row(id: 'a'));
 
@@ -178,11 +239,15 @@ void main() {
           'workout_type',
           'activity',
           'note',
+          'effort',
+          'energy',
           'created_at',
         ]),
       );
       final rows = await upgraded.select(upgraded.checkIns).get();
       expect(rows.map((row) => row.activity), [null, null]);
+      expect(rows.map((row) => row.effort), [null, null]);
+      expect(rows.map((row) => row.energy), [null, null]);
     });
   });
 
@@ -213,14 +278,19 @@ void main() {
 
     tearDown(() => upgraded.close());
 
-    test('keeps every check-in as it was, with no activity', () async {
-      final row = await upgraded.select(upgraded.checkIns).getSingle();
+    test(
+      'keeps every check-in as it was, with no activity or ratings',
+      () async {
+        final row = await upgraded.select(upgraded.checkIns).getSingle();
 
-      expect(row.photoPaths, ['photos/a.jpg', 'photos/a-2.jpg']);
-      expect(row.workoutType, WorkoutType.other);
-      expect(row.note, 'Sport, Walk, Class');
-      expect(row.activity, isNull);
-    });
+        expect(row.photoPaths, ['photos/a.jpg', 'photos/a-2.jpg']);
+        expect(row.workoutType, WorkoutType.other);
+        expect(row.note, 'Sport, Walk, Class');
+        expect(row.activity, isNull);
+        expect(row.effort, isNull);
+        expect(row.energy, isNull);
+      },
+    );
 
     test('can then store an activity', () async {
       await (upgraded.update(upgraded.checkIns)..where((t) => t.id.equals('a')))
@@ -228,6 +298,61 @@ void main() {
 
       final row = await upgraded.select(upgraded.checkIns).getSingle();
       expect(row.activity, OtherActivity.sport);
+    });
+  });
+
+  group('upgrading from version 3, which had no effort or energy', () {
+    late AppDatabase upgraded;
+
+    setUp(() {
+      upgraded = AppDatabase(
+        NativeDatabase.memory(
+          setup: (raw) {
+            raw
+              ..execute(
+                'CREATE TABLE "check_ins" ("id" TEXT NOT NULL, '
+                '"day" TEXT NOT NULL UNIQUE, "photo_paths" TEXT NOT NULL, '
+                '"workout_type" TEXT NOT NULL, "activity" TEXT NULL, '
+                '"note" TEXT NULL, "created_at" TEXT NOT NULL, '
+                'PRIMARY KEY ("id"));',
+              )
+              ..execute(
+                "INSERT INTO check_ins VALUES ('a', '2026-11-07', "
+                '\'["photos/a.jpg"]\', \'other\', \'sport\', '
+                "'Five-a-side', '2026-11-07T18:30:00.000000 +04:00')",
+              )
+              ..execute('PRAGMA user_version = 3');
+          },
+        ),
+      );
+    });
+
+    tearDown(() => upgraded.close());
+
+    test('keeps every check-in as it was, with no ratings', () async {
+      final row = await upgraded.select(upgraded.checkIns).getSingle();
+
+      expect(row.photoPaths, ['photos/a.jpg']);
+      expect(row.workoutType, WorkoutType.other);
+      expect(row.activity, OtherActivity.sport);
+      expect(row.note, 'Five-a-side');
+      expect(row.effort, isNull);
+      expect(row.energy, isNull);
+    });
+
+    test('can then store effort and energy', () async {
+      await (upgraded.update(
+        upgraded.checkIns,
+      )..where((t) => t.id.equals('a'))).write(
+        const CheckInsCompanion(
+          effort: Value(Rating.max),
+          energy: Value(Rating.medium),
+        ),
+      );
+
+      final row = await upgraded.select(upgraded.checkIns).getSingle();
+      expect(row.effort, Rating.max);
+      expect(row.energy, Rating.medium);
     });
   });
 }

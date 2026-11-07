@@ -7,6 +7,7 @@ import 'package:gym_grid/core/errors/failure.dart';
 import 'package:gym_grid/features/check_in/domain/entities/check_in.dart';
 import 'package:gym_grid/features/check_in/domain/entities/check_in_photo.dart';
 import 'package:gym_grid/features/check_in/domain/entities/other_activity.dart';
+import 'package:gym_grid/features/check_in/domain/entities/rating.dart';
 import 'package:gym_grid/features/check_in/domain/entities/workout_type.dart';
 import 'package:gym_grid/features/check_in/domain/usecases/delete_check_in.dart';
 import 'package:gym_grid/features/check_in/domain/usecases/update_check_in.dart';
@@ -45,6 +46,7 @@ void main() {
   setUpAll(() {
     registerFallbackValue(WorkoutType.other);
     registerFallbackValue(OtherActivity.sport);
+    registerFallbackValue(Rating.medium);
     registerFallbackValue(<CheckInPhoto>[]);
   });
 
@@ -66,6 +68,8 @@ void main() {
         photos: any(named: 'photos'),
         workoutType: any(named: 'workoutType'),
         activity: any(named: 'activity'),
+        effort: any(named: 'effort'),
+        energy: any(named: 'energy'),
         note: any(named: 'note'),
       ),
     ).thenAnswer((_) => answer());
@@ -171,6 +175,8 @@ void main() {
           ],
           workoutType: WorkoutType.cardio,
           activity: null,
+          effort: null,
+          energy: null,
           note: 'Intervals',
         ),
       ).called(1),
@@ -228,10 +234,49 @@ void main() {
           photos: any(named: 'photos'),
           workoutType: any(named: 'workoutType'),
           activity: any(named: 'activity'),
+          effort: any(named: 'effort'),
+          energy: any(named: 'energy'),
           note: any(named: 'note'),
         ),
       );
     });
+
+    blocTest<DayDetailCubit, DayDetailState>(
+      'keeps the effort and energy',
+      setUp: () {
+        when(
+          () => photoPicker.takePhoto(),
+        ).thenAnswer((_) async => '/tmp/new.jpg');
+        stubUpdate(() async => stored);
+      },
+      build: buildCubit,
+      seed: () => DayDetailLoaded(
+        CheckIn(
+          id: '1',
+          date: day,
+          photoPaths: const ['photos/1.jpg'],
+          workoutType: WorkoutType.strength,
+          effort: Rating.max,
+          energy: Rating.low,
+          createdAt: DateTime(2026, 11, 6, 7, 42),
+        ),
+      ),
+      act: (cubit) => cubit.takePhoto(),
+      verify: (_) => verify(
+        () => updateCheckIn(
+          id: '1',
+          photos: const [
+            StoredPhoto('photos/1.jpg'),
+            PickedPhoto('/tmp/new.jpg'),
+          ],
+          workoutType: WorkoutType.strength,
+          activity: null,
+          effort: Rating.max,
+          energy: Rating.low,
+          note: null,
+        ),
+      ).called(1),
+    );
 
     blocTest<DayDetailCubit, DayDetailState>(
       "keeps an Other workout's activity",
@@ -262,6 +307,8 @@ void main() {
           ],
           workoutType: WorkoutType.other,
           activity: OtherActivity.sport,
+          effort: null,
+          energy: null,
           note: null,
         ),
       ).called(1),

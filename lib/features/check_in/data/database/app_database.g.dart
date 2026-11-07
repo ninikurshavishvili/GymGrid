@@ -64,6 +64,24 @@ class $CheckInsTable extends CheckIns
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  @override
+  late final GeneratedColumnWithTypeConverter<Rating?, int> effort =
+      GeneratedColumn<int>(
+        'effort',
+        aliasedName,
+        true,
+        type: DriftSqlType.int,
+        requiredDuringInsert: false,
+      ).withConverter<Rating?>($CheckInsTable.$convertereffortn);
+  @override
+  late final GeneratedColumnWithTypeConverter<Rating?, int> energy =
+      GeneratedColumn<int>(
+        'energy',
+        aliasedName,
+        true,
+        type: DriftSqlType.int,
+        requiredDuringInsert: false,
+      ).withConverter<Rating?>($CheckInsTable.$converterenergyn);
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -83,6 +101,8 @@ class $CheckInsTable extends CheckIns
     workoutType,
     activity,
     note,
+    effort,
+    energy,
     createdAt,
   ];
   @override
@@ -157,6 +177,18 @@ class $CheckInsTable extends CheckIns
         DriftSqlType.string,
         data['${effectivePrefix}note'],
       ),
+      effort: $CheckInsTable.$convertereffortn.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.int,
+          data['${effectivePrefix}effort'],
+        ),
+      ),
+      energy: $CheckInsTable.$converterenergyn.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.int,
+          data['${effectivePrefix}energy'],
+        ),
+      ),
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -179,6 +211,12 @@ class $CheckInsTable extends CheckIns
       const OtherActivityConverter();
   static TypeConverter<OtherActivity?, String?> $converteractivityn =
       NullAwareTypeConverter.wrap($converteractivity);
+  static TypeConverter<Rating, int> $convertereffort = const RatingConverter();
+  static TypeConverter<Rating?, int?> $convertereffortn =
+      NullAwareTypeConverter.wrap($convertereffort);
+  static TypeConverter<Rating, int> $converterenergy = const RatingConverter();
+  static TypeConverter<Rating?, int?> $converterenergyn =
+      NullAwareTypeConverter.wrap($converterenergy);
 }
 
 class CheckInRow extends DataClass implements Insertable<CheckInRow> {
@@ -196,6 +234,13 @@ class CheckInRow extends DataClass implements Insertable<CheckInRow> {
   /// Only ever set for an Other workout. Added in schema version 3.
   final OtherActivity? activity;
   final String? note;
+
+  /// How hard the workout was, as a percentage. Added in schema version 4.
+  final Rating? effort;
+
+  /// How much energy the user had, as a percentage. Added in schema
+  /// version 4.
+  final Rating? energy;
   final DateTime createdAt;
   const CheckInRow({
     required this.id,
@@ -204,6 +249,8 @@ class CheckInRow extends DataClass implements Insertable<CheckInRow> {
     required this.workoutType,
     this.activity,
     this.note,
+    this.effort,
+    this.energy,
     required this.createdAt,
   });
   @override
@@ -231,6 +278,16 @@ class CheckInRow extends DataClass implements Insertable<CheckInRow> {
     if (!nullToAbsent || note != null) {
       map['note'] = Variable<String>(note);
     }
+    if (!nullToAbsent || effort != null) {
+      map['effort'] = Variable<int>(
+        $CheckInsTable.$convertereffortn.toSql(effort),
+      );
+    }
+    if (!nullToAbsent || energy != null) {
+      map['energy'] = Variable<int>(
+        $CheckInsTable.$converterenergyn.toSql(energy),
+      );
+    }
     map['created_at'] = Variable<DateTime>(createdAt);
     return map;
   }
@@ -245,6 +302,12 @@ class CheckInRow extends DataClass implements Insertable<CheckInRow> {
           ? const Value.absent()
           : Value(activity),
       note: note == null && nullToAbsent ? const Value.absent() : Value(note),
+      effort: effort == null && nullToAbsent
+          ? const Value.absent()
+          : Value(effort),
+      energy: energy == null && nullToAbsent
+          ? const Value.absent()
+          : Value(energy),
       createdAt: Value(createdAt),
     );
   }
@@ -261,6 +324,8 @@ class CheckInRow extends DataClass implements Insertable<CheckInRow> {
       workoutType: serializer.fromJson<WorkoutType>(json['workoutType']),
       activity: serializer.fromJson<OtherActivity?>(json['activity']),
       note: serializer.fromJson<String?>(json['note']),
+      effort: serializer.fromJson<Rating?>(json['effort']),
+      energy: serializer.fromJson<Rating?>(json['energy']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
     );
   }
@@ -274,6 +339,8 @@ class CheckInRow extends DataClass implements Insertable<CheckInRow> {
       'workoutType': serializer.toJson<WorkoutType>(workoutType),
       'activity': serializer.toJson<OtherActivity?>(activity),
       'note': serializer.toJson<String?>(note),
+      'effort': serializer.toJson<Rating?>(effort),
+      'energy': serializer.toJson<Rating?>(energy),
       'createdAt': serializer.toJson<DateTime>(createdAt),
     };
   }
@@ -285,6 +352,8 @@ class CheckInRow extends DataClass implements Insertable<CheckInRow> {
     WorkoutType? workoutType,
     Value<OtherActivity?> activity = const Value.absent(),
     Value<String?> note = const Value.absent(),
+    Value<Rating?> effort = const Value.absent(),
+    Value<Rating?> energy = const Value.absent(),
     DateTime? createdAt,
   }) => CheckInRow(
     id: id ?? this.id,
@@ -293,6 +362,8 @@ class CheckInRow extends DataClass implements Insertable<CheckInRow> {
     workoutType: workoutType ?? this.workoutType,
     activity: activity.present ? activity.value : this.activity,
     note: note.present ? note.value : this.note,
+    effort: effort.present ? effort.value : this.effort,
+    energy: energy.present ? energy.value : this.energy,
     createdAt: createdAt ?? this.createdAt,
   );
   CheckInRow copyWithCompanion(CheckInsCompanion data) {
@@ -307,6 +378,8 @@ class CheckInRow extends DataClass implements Insertable<CheckInRow> {
           : this.workoutType,
       activity: data.activity.present ? data.activity.value : this.activity,
       note: data.note.present ? data.note.value : this.note,
+      effort: data.effort.present ? data.effort.value : this.effort,
+      energy: data.energy.present ? data.energy.value : this.energy,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
     );
   }
@@ -320,14 +393,25 @@ class CheckInRow extends DataClass implements Insertable<CheckInRow> {
           ..write('workoutType: $workoutType, ')
           ..write('activity: $activity, ')
           ..write('note: $note, ')
+          ..write('effort: $effort, ')
+          ..write('energy: $energy, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, day, photoPaths, workoutType, activity, note, createdAt);
+  int get hashCode => Object.hash(
+    id,
+    day,
+    photoPaths,
+    workoutType,
+    activity,
+    note,
+    effort,
+    energy,
+    createdAt,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -338,6 +422,8 @@ class CheckInRow extends DataClass implements Insertable<CheckInRow> {
           other.workoutType == this.workoutType &&
           other.activity == this.activity &&
           other.note == this.note &&
+          other.effort == this.effort &&
+          other.energy == this.energy &&
           other.createdAt == this.createdAt);
 }
 
@@ -348,6 +434,8 @@ class CheckInsCompanion extends UpdateCompanion<CheckInRow> {
   final Value<WorkoutType> workoutType;
   final Value<OtherActivity?> activity;
   final Value<String?> note;
+  final Value<Rating?> effort;
+  final Value<Rating?> energy;
   final Value<DateTime> createdAt;
   final Value<int> rowid;
   const CheckInsCompanion({
@@ -357,6 +445,8 @@ class CheckInsCompanion extends UpdateCompanion<CheckInRow> {
     this.workoutType = const Value.absent(),
     this.activity = const Value.absent(),
     this.note = const Value.absent(),
+    this.effort = const Value.absent(),
+    this.energy = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -367,6 +457,8 @@ class CheckInsCompanion extends UpdateCompanion<CheckInRow> {
     required WorkoutType workoutType,
     this.activity = const Value.absent(),
     this.note = const Value.absent(),
+    this.effort = const Value.absent(),
+    this.energy = const Value.absent(),
     required DateTime createdAt,
     this.rowid = const Value.absent(),
   }) : id = Value(id),
@@ -381,6 +473,8 @@ class CheckInsCompanion extends UpdateCompanion<CheckInRow> {
     Expression<String>? workoutType,
     Expression<String>? activity,
     Expression<String>? note,
+    Expression<int>? effort,
+    Expression<int>? energy,
     Expression<DateTime>? createdAt,
     Expression<int>? rowid,
   }) {
@@ -391,6 +485,8 @@ class CheckInsCompanion extends UpdateCompanion<CheckInRow> {
       if (workoutType != null) 'workout_type': workoutType,
       if (activity != null) 'activity': activity,
       if (note != null) 'note': note,
+      if (effort != null) 'effort': effort,
+      if (energy != null) 'energy': energy,
       if (createdAt != null) 'created_at': createdAt,
       if (rowid != null) 'rowid': rowid,
     });
@@ -403,6 +499,8 @@ class CheckInsCompanion extends UpdateCompanion<CheckInRow> {
     Value<WorkoutType>? workoutType,
     Value<OtherActivity?>? activity,
     Value<String?>? note,
+    Value<Rating?>? effort,
+    Value<Rating?>? energy,
     Value<DateTime>? createdAt,
     Value<int>? rowid,
   }) {
@@ -413,6 +511,8 @@ class CheckInsCompanion extends UpdateCompanion<CheckInRow> {
       workoutType: workoutType ?? this.workoutType,
       activity: activity ?? this.activity,
       note: note ?? this.note,
+      effort: effort ?? this.effort,
+      energy: energy ?? this.energy,
       createdAt: createdAt ?? this.createdAt,
       rowid: rowid ?? this.rowid,
     );
@@ -447,6 +547,16 @@ class CheckInsCompanion extends UpdateCompanion<CheckInRow> {
     if (note.present) {
       map['note'] = Variable<String>(note.value);
     }
+    if (effort.present) {
+      map['effort'] = Variable<int>(
+        $CheckInsTable.$convertereffortn.toSql(effort.value),
+      );
+    }
+    if (energy.present) {
+      map['energy'] = Variable<int>(
+        $CheckInsTable.$converterenergyn.toSql(energy.value),
+      );
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -465,6 +575,8 @@ class CheckInsCompanion extends UpdateCompanion<CheckInRow> {
           ..write('workoutType: $workoutType, ')
           ..write('activity: $activity, ')
           ..write('note: $note, ')
+          ..write('effort: $effort, ')
+          ..write('energy: $energy, ')
           ..write('createdAt: $createdAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -494,6 +606,8 @@ typedef $$CheckInsTableCreateCompanionBuilder =
       required WorkoutType workoutType,
       Value<OtherActivity?> activity,
       Value<String?> note,
+      Value<Rating?> effort,
+      Value<Rating?> energy,
       required DateTime createdAt,
       Value<int> rowid,
     });
@@ -505,6 +619,8 @@ typedef $$CheckInsTableUpdateCompanionBuilder =
       Value<WorkoutType> workoutType,
       Value<OtherActivity?> activity,
       Value<String?> note,
+      Value<Rating?> effort,
+      Value<Rating?> energy,
       Value<DateTime> createdAt,
       Value<int> rowid,
     });
@@ -552,6 +668,18 @@ class $$CheckInsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnWithTypeConverterFilters<Rating?, Rating, int> get effort =>
+      $composableBuilder(
+        column: $table.effort,
+        builder: (column) => ColumnWithTypeConverterFilters(column),
+      );
+
+  ColumnWithTypeConverterFilters<Rating?, Rating, int> get energy =>
+      $composableBuilder(
+        column: $table.energy,
+        builder: (column) => ColumnWithTypeConverterFilters(column),
+      );
+
   ColumnFilters<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnFilters(column),
@@ -597,6 +725,16 @@ class $$CheckInsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get effort => $composableBuilder(
+    column: $table.effort,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get energy => $composableBuilder(
+    column: $table.energy,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -635,6 +773,12 @@ class $$CheckInsTableAnnotationComposer
 
   GeneratedColumn<String> get note =>
       $composableBuilder(column: $table.note, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<Rating?, int> get effort =>
+      $composableBuilder(column: $table.effort, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<Rating?, int> get energy =>
+      $composableBuilder(column: $table.energy, builder: (column) => column);
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
@@ -677,6 +821,8 @@ class $$CheckInsTableTableManager
                 Value<WorkoutType> workoutType = const Value.absent(),
                 Value<OtherActivity?> activity = const Value.absent(),
                 Value<String?> note = const Value.absent(),
+                Value<Rating?> effort = const Value.absent(),
+                Value<Rating?> energy = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => CheckInsCompanion(
@@ -686,6 +832,8 @@ class $$CheckInsTableTableManager
                 workoutType: workoutType,
                 activity: activity,
                 note: note,
+                effort: effort,
+                energy: energy,
                 createdAt: createdAt,
                 rowid: rowid,
               ),
@@ -697,6 +845,8 @@ class $$CheckInsTableTableManager
                 required WorkoutType workoutType,
                 Value<OtherActivity?> activity = const Value.absent(),
                 Value<String?> note = const Value.absent(),
+                Value<Rating?> effort = const Value.absent(),
+                Value<Rating?> energy = const Value.absent(),
                 required DateTime createdAt,
                 Value<int> rowid = const Value.absent(),
               }) => CheckInsCompanion.insert(
@@ -706,6 +856,8 @@ class $$CheckInsTableTableManager
                 workoutType: workoutType,
                 activity: activity,
                 note: note,
+                effort: effort,
+                energy: energy,
                 createdAt: createdAt,
                 rowid: rowid,
               ),

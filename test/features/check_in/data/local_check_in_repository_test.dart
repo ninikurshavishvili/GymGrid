@@ -15,6 +15,7 @@ import 'package:gym_grid/features/check_in/domain/entities/check_in_edit.dart';
 import 'package:gym_grid/features/check_in/domain/entities/check_in_photo.dart';
 import 'package:gym_grid/features/check_in/domain/entities/new_check_in.dart';
 import 'package:gym_grid/features/check_in/domain/entities/other_activity.dart';
+import 'package:gym_grid/features/check_in/domain/entities/rating.dart';
 import 'package:gym_grid/features/check_in/domain/entities/workout_type.dart';
 import 'package:path/path.dart' as p;
 
@@ -63,6 +64,8 @@ void main() {
     WorkoutType workoutType = WorkoutType.strength,
     OtherActivity? activity,
     String? note,
+    Rating? effort,
+    Rating? energy,
   }) async {
     return repository.save(
       NewCheckIn(
@@ -71,6 +74,8 @@ void main() {
         workoutType: workoutType,
         activity: activity,
         note: note,
+        effort: effort,
+        energy: energy,
         createdAt: date.toLocalDateTime().add(const Duration(hours: 7)),
       ),
     );
@@ -126,6 +131,21 @@ void main() {
 
       expect(saved.activity, OtherActivity.walk);
       expect(await repository.findByDate(oct5), saved);
+    });
+
+    test('stores effort and energy', () async {
+      final saved = await save(oct5, effort: Rating.max, energy: Rating.medium);
+
+      expect(saved.effort, Rating.max);
+      expect(saved.energy, Rating.medium);
+      expect(await repository.findByDate(oct5), saved);
+    });
+
+    test('leaves effort and energy empty when not rated', () async {
+      final saved = await save(oct5);
+
+      expect(saved.effort, isNull);
+      expect(saved.energy, isNull);
     });
 
     test('stores several photos in order, the first as the cover', () async {
@@ -372,6 +392,30 @@ void main() {
       );
       expect((await edit(WorkoutType.cardio, null)).activity, isNull);
       expect((await repository.findByDate(oct5))?.activity, isNull);
+    });
+
+    test('sets, changes and clears effort and energy', () async {
+      final checkIn = await save(oct5);
+
+      Future<CheckIn> edit(Rating? effort, Rating? energy) => repository.update(
+        CheckInEdit(
+          id: checkIn.id,
+          photos: [StoredPhoto(checkIn.coverPhotoPath)],
+          workoutType: checkIn.workoutType,
+          effort: effort,
+          energy: energy,
+        ),
+      );
+
+      final rated = await edit(Rating.low, Rating.high);
+      expect((rated.effort, rated.energy), (Rating.low, Rating.high));
+
+      final changed = await edit(Rating.veryLow, Rating.high);
+      expect((changed.effort, changed.energy), (Rating.veryLow, Rating.high));
+
+      final cleared = await edit(null, null);
+      expect((cleared.effort, cleared.energy), (null, null));
+      expect(await repository.findByDate(oct5), cleared);
     });
 
     test('can remove the note', () async {

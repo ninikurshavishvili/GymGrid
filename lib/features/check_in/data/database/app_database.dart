@@ -2,6 +2,7 @@ import 'package:drift/drift.dart';
 
 import '../../../../core/date/calendar_day.dart';
 import '../../domain/entities/other_activity.dart';
+import '../../domain/entities/rating.dart';
 import '../../domain/entities/workout_type.dart';
 import 'check_ins_table.dart';
 import 'converters.dart';
@@ -19,10 +20,10 @@ class AppDatabase extends _$AppDatabase {
   /// Increase this when a table changes, then run
   /// `dart run drift_dev make-migrations` and write the migration step.
   ///
-  /// Version 2 let a check-in hold several photos, and version 3 added the
-  /// activity of an Other workout.
+  /// Version 2 let a check-in hold several photos, version 3 added the
+  /// activity of an Other workout, and version 4 added effort and energy.
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -42,7 +43,12 @@ class AppDatabase extends _$AppDatabase {
                 'json_array(photo_path)',
               ),
             },
-            newColumns: [checkIns.photoPaths, checkIns.activity],
+            newColumns: [
+              checkIns.photoPaths,
+              checkIns.activity,
+              checkIns.effort,
+              checkIns.energy,
+            ],
           ),
         );
         return;
@@ -50,6 +56,11 @@ class AppDatabase extends _$AppDatabase {
       if (from < 3) {
         // Existing check-ins have no activity, so the column starts empty.
         await migrator.addColumn(checkIns, checkIns.activity);
+      }
+      if (from < 4) {
+        // Nobody could rate a check-in before, so both columns start empty.
+        await migrator.addColumn(checkIns, checkIns.effort);
+        await migrator.addColumn(checkIns, checkIns.energy);
       }
     },
   );

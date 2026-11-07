@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:gym_grid/core/date/calendar_day.dart';
 import 'package:gym_grid/features/check_in/domain/entities/check_in.dart';
 import 'package:gym_grid/features/check_in/domain/entities/other_activity.dart';
+import 'package:gym_grid/features/check_in/domain/entities/rating.dart';
 import 'package:gym_grid/features/check_in/domain/entities/workout_type.dart';
 
 CheckIn _checkIn({
@@ -11,6 +12,8 @@ CheckIn _checkIn({
   WorkoutType workoutType = WorkoutType.strength,
   OtherActivity? activity,
   String? note = 'Leg day',
+  Rating? effort,
+  Rating? energy,
   DateTime? createdAt,
 }) {
   return CheckIn(
@@ -20,6 +23,8 @@ CheckIn _checkIn({
     workoutType: workoutType,
     activity: activity,
     note: note,
+    effort: effort,
+    energy: energy,
     createdAt: createdAt ?? DateTime(2026, 10, 5, 7, 42),
   );
 }
@@ -38,6 +43,8 @@ void main() {
       'photoPaths': _checkIn(photoPaths: const ['photos/2.jpg']),
       'workoutType': _checkIn(workoutType: WorkoutType.cardio),
       'note': _checkIn(note: null),
+      'effort': _checkIn(effort: Rating.high),
+      'energy': _checkIn(energy: Rating.low),
       'createdAt': _checkIn(createdAt: DateTime(2026, 10, 5, 7, 43)),
     };
 
