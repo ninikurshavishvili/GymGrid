@@ -20,8 +20,8 @@ GitHub-style contribution grid, so you can see your consistency at a glance.
 
 > [!NOTE]
 > 🚧 **Work in progress.** GymGrid is being built step by step as a portfolio
-> project. The domain layer and design system are done; the screens are
-> next. See the [roadmap](#roadmap) for what's finished.
+> project. The app's screens are built; the icon, launch screen and App
+> Store release are next. See the [roadmap](#roadmap) for what's finished.
 
 ## Screenshots
 
@@ -62,8 +62,18 @@ _Screenshots coming soon._
 - [x] Home screen: streak cards and year grid
 - [x] Check-in flow with the camera
 - [x] Day detail: add photos, edit and delete
+- [x] Edge cases: midnight, a new year, startup and storage failures
+- [x] History of every check-in, and named Other workouts
+- [x] Settings: privacy, delete all data, licenses and version
 - [ ] Android build and testing
 - [ ] App icon and screenshots
+
+### Later
+
+Ideas kept out of version 1:
+
+- Voice notes: a microphone button that fills in the note as you talk.
+  Until then, the keyboard's own dictation key is there in the note field.
 
 ## Architecture
 

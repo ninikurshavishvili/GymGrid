@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 import '../core/date/calendar_day.dart';
 import '../features/check_in/presentation/check_in_cubit.dart';
@@ -13,6 +14,9 @@ import '../features/progress/presentation/history_cubit.dart';
 import '../features/progress/presentation/history_screen.dart';
 import '../features/progress/presentation/home_cubit.dart';
 import '../features/progress/presentation/home_screen.dart';
+import '../features/settings/presentation/settings_cubit.dart';
+import '../features/settings/presentation/settings_screen.dart';
+import 'app_links.dart';
 import 'di.dart';
 
 /// Route locations. Screens navigate through these helpers rather than
@@ -25,6 +29,9 @@ abstract final class AppRoutes {
 
   static const String _historySegment = 'history';
   static const String history = '/$_historySegment';
+
+  static const String _settingsSegment = 'settings';
+  static const String settings = '/$_settingsSegment';
 
   static const String _dayParam = 'date';
   static const String _dayDetailSegment = 'day/:$_dayParam';
@@ -42,7 +49,7 @@ abstract final class AppRoutes {
 
 /// Builds the app's route table.
 ///
-/// Check-in, history and day detail are children of home, so a deep link to
+/// Check-in, history, settings and day detail are children of home, so a deep link to
 /// `/day/2026-10-03` still has home underneath it to go back to. A day
 /// opened from history is pushed on top of it instead, so Back returns
 /// there.
@@ -69,6 +76,22 @@ GoRouter createRouter() {
             builder: (context, state) => BlocProvider(
               create: (_) => HistoryCubit(watchHistory: getIt())..watch(),
               child: HistoryScreen(photoLocator: getIt()),
+            ),
+          ),
+          GoRoute(
+            path: AppRoutes._settingsSegment,
+            builder: (context, state) => BlocProvider(
+              create: (_) => SettingsCubit(
+                deleteAllCheckIns: getIt(),
+                linkOpener: getIt(),
+              ),
+              child: SettingsScreen(
+                version: _versionOf(getIt<PackageInfo>()),
+                privacyPolicy: switch (AppLinks.privacyPolicy) {
+                  final url? => Uri.parse(url),
+                  null => null,
+                },
+              ),
             ),
           ),
           GoRoute(
@@ -109,6 +132,10 @@ GoRouter createRouter() {
     errorBuilder: (context, state) => const _NotFoundScreen(),
   );
 }
+
+/// The version as the App Store shows it, with the build in brackets:
+/// "1.0.0 (1)".
+String _versionOf(PackageInfo info) => '${info.version} (${info.buildNumber})';
 
 /// The check-in form, for today or for editing [editingDay]'s check-in.
 ///
