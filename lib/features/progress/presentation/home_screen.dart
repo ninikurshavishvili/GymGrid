@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/cupertino.dart'
     show
         CupertinoActivityIndicator,
+        CupertinoButton,
         CupertinoIcons,
         CupertinoSliverNavigationBar;
 import 'package:flutter/material.dart';
@@ -108,10 +109,39 @@ class _NavigationBar extends StatelessWidget {
       // The small title appears only once the large one has scrolled away.
       middle: const Text('GymGrid'),
       alwaysShowMiddle: false,
+      trailing: const _SettingsButton(),
       backgroundColor: context.colors.bgPrimary,
       border: null,
       // Nothing opened from here shares this title's transition.
       transitionBetweenRoutes: false,
+    );
+  }
+}
+
+/// The gear that opens Settings, as at the top of many iOS apps' main
+/// screen.
+class _SettingsButton extends StatelessWidget {
+  const _SettingsButton();
+
+  void _open(BuildContext context) {
+    unawaited(context.push(AppRoutes.settings));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      container: true,
+      button: true,
+      label: 'Settings',
+      // Excluding the children also drops the button's tap action, so the
+      // node declares it again, to stay usable with VoiceOver.
+      onTap: () => _open(context),
+      excludeSemantics: true,
+      child: CupertinoButton(
+        padding: EdgeInsets.zero,
+        onPressed: () => _open(context),
+        child: Icon(CupertinoIcons.gear_alt, color: context.colors.actionGreen),
+      ),
     );
   }
 }

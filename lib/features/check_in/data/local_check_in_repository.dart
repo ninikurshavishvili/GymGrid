@@ -171,6 +171,14 @@ class LocalCheckInRepository implements CheckInRepository {
     }
   });
 
+  @override
+  Future<void> deleteAll() => _guard(() async {
+    // Rows first, so a failure part-way through the photos never leaves a
+    // row pointing at a deleted file. Trying again finishes the job.
+    await _database.delete(_checkIns).go();
+    await _photoStore.deleteUnreferenced(const {});
+  });
+
   /// Deletes every photo that no check-in refers to.
   ///
   /// Call it at launch, before anything can save a check-in: a save in

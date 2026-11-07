@@ -9,6 +9,7 @@ import 'package:gym_grid/core/date/calendar_day.dart';
 import 'package:gym_grid/core/date/clock.dart';
 import 'package:gym_grid/features/check_in/domain/repositories/check_in_repository.dart';
 import 'package:gym_grid/features/check_in/domain/repositories/photo_locator.dart';
+import 'package:gym_grid/features/check_in/domain/usecases/delete_all_check_ins.dart';
 import 'package:gym_grid/features/check_in/domain/usecases/delete_check_in.dart';
 import 'package:gym_grid/features/check_in/domain/usecases/get_check_in.dart';
 import 'package:gym_grid/features/check_in/domain/usecases/save_check_in.dart';
@@ -21,7 +22,10 @@ import 'package:gym_grid/features/progress/domain/usecases/watch_progress.dart';
 import 'package:gym_grid/features/progress/presentation/day_detail_screen.dart';
 import 'package:gym_grid/features/progress/presentation/history_screen.dart';
 import 'package:gym_grid/features/progress/presentation/home_screen.dart';
+import 'package:gym_grid/features/settings/presentation/link_opener.dart';
+import 'package:gym_grid/features/settings/presentation/settings_screen.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 class _MockCheckInRepository extends Mock implements CheckInRepository {}
 
@@ -44,6 +48,16 @@ void main() {
       ..registerSingleton<Clock>(clock)
       ..registerSingleton(WatchProgress(repository: repository, clock: clock))
       ..registerSingleton(WatchHistory(repository: repository))
+      ..registerSingleton(DeleteAllCheckIns(repository: repository))
+      ..registerSingleton<LinkOpener>(const LinkOpener())
+      ..registerSingleton(
+        PackageInfo(
+          appName: 'GymGrid',
+          packageName: 'com.ninikurshavishvili.gymgrid',
+          version: '1.0.0',
+          buildNumber: '1',
+        ),
+      )
       ..registerSingleton(SaveCheckIn(repository: repository, clock: clock))
       ..registerSingleton(UpdateCheckIn(repository: repository))
       ..registerSingleton(DeleteCheckIn(repository: repository))
@@ -94,6 +108,23 @@ void main() {
     await tester.tap(find.bySemanticsLabel('Back'));
     await tester.pumpAndSettle();
     expect(find.byType(HistoryScreen), findsNothing);
+    expect(find.byType(HomeScreen), findsOneWidget);
+  });
+
+  testWidgets('settings opens over home with the version and build', (
+    tester,
+  ) async {
+    await pumpApp(tester);
+
+    unawaited(router.push(AppRoutes.settings));
+    await tester.pumpAndSettle();
+
+    final screen = tester.widget<SettingsScreen>(find.byType(SettingsScreen));
+    expect(screen.version, '1.0.0 (1)');
+    expect(screen.privacyPolicy, isNull);
+
+    await tester.tap(find.bySemanticsLabel('Back'));
+    await tester.pumpAndSettle();
     expect(find.byType(HomeScreen), findsOneWidget);
   });
 

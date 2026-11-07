@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:drift_flutter/drift_flutter.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
 
 import '../core/date/clock.dart';
@@ -12,6 +13,7 @@ import '../features/check_in/data/local_check_in_repository.dart';
 import '../features/check_in/data/photo_store.dart';
 import '../features/check_in/domain/repositories/check_in_repository.dart';
 import '../features/check_in/domain/repositories/photo_locator.dart';
+import '../features/check_in/domain/usecases/delete_all_check_ins.dart';
 import '../features/check_in/domain/usecases/delete_check_in.dart';
 import '../features/check_in/domain/usecases/get_check_in.dart';
 import '../features/check_in/domain/usecases/save_check_in.dart';
@@ -20,6 +22,7 @@ import '../features/check_in/domain/usecases/watch_check_in.dart';
 import '../features/check_in/presentation/photo_picker.dart';
 import '../features/progress/domain/usecases/watch_history.dart';
 import '../features/progress/domain/usecases/watch_progress.dart';
+import '../features/settings/presentation/link_opener.dart';
 
 /// The app's service locator, the composition root for dependencies.
 ///
@@ -33,6 +36,7 @@ final GetIt getIt = GetIt.instance;
 Future<void> configureDependencies() async {
   // Read first, so a failure here leaves no database behind to clean up.
   final documentsDirectory = await getApplicationDocumentsDirectory();
+  final packageInfo = await PackageInfo.fromPlatform();
 
   await registerDependencies(
     database: AppDatabase(
@@ -47,12 +51,13 @@ Future<void> configureDependencies() async {
       ),
     ),
     documentsDirectory: documentsDirectory,
+    packageInfo: packageInfo,
   );
 }
 
-/// Registers all dependencies around [database] and the photos kept in
-/// [documentsDirectory], then deletes photos left over from a save the app
-/// didn't finish.
+/// Registers all dependencies around [database], the photos kept in
+/// [documentsDirectory] and the app's [packageInfo], then deletes photos
+/// left over from a save the app didn't finish.
 ///
 /// Separate from [configureDependencies] so tests can pass an in-memory
 /// database and a temporary folder.
@@ -60,6 +65,7 @@ Future<void> configureDependencies() async {
 Future<void> registerDependencies({
   required AppDatabase database,
   required Directory documentsDirectory,
+  required PackageInfo packageInfo,
 }) async {
   final photoStore = PhotoStore(documentsDirectory);
   final repository = LocalCheckInRepository(
@@ -86,6 +92,7 @@ Future<void> registerDependencies({
 
   getIt
     ..registerSingleton<Clock>(const Clock())
+    ..registerSingleton<PackageInfo>(packageInfo)
     ..registerSingleton<AppDatabase>(
       database,
       dispose: (database) => database.close(),
@@ -94,6 +101,7 @@ Future<void> registerDependencies({
     ..registerSingleton<PhotoLocator>(photoStore)
     ..registerSingleton<CheckInRepository>(repository)
     ..registerLazySingleton<PhotoPicker>(PhotoPicker.new)
+    ..registerLazySingleton<LinkOpener>(LinkOpener.new)
     ..registerLazySingleton<SaveCheckIn>(
       () => SaveCheckIn(repository: getIt(), clock: getIt()),
     )
@@ -106,6 +114,9 @@ Future<void> registerDependencies({
     )
     ..registerLazySingleton<DeleteCheckIn>(
       () => DeleteCheckIn(repository: getIt()),
+    )
+    ..registerLazySingleton<DeleteAllCheckIns>(
+      () => DeleteAllCheckIns(repository: getIt()),
     )
     ..registerLazySingleton<WatchProgress>(
       () => WatchProgress(repository: getIt(), clock: getIt()),

@@ -10,6 +10,7 @@ import 'package:gym_grid/features/check_in/domain/entities/check_in_photo.dart';
 import 'package:gym_grid/features/check_in/domain/entities/workout_type.dart';
 import 'package:gym_grid/features/check_in/domain/repositories/check_in_repository.dart';
 import 'package:gym_grid/features/check_in/domain/repositories/photo_locator.dart';
+import 'package:gym_grid/features/check_in/domain/usecases/delete_all_check_ins.dart';
 import 'package:gym_grid/features/check_in/domain/usecases/delete_check_in.dart';
 import 'package:gym_grid/features/check_in/domain/usecases/get_check_in.dart';
 import 'package:gym_grid/features/check_in/domain/usecases/save_check_in.dart';
@@ -18,6 +19,8 @@ import 'package:gym_grid/features/check_in/domain/usecases/watch_check_in.dart';
 import 'package:gym_grid/features/check_in/presentation/photo_picker.dart';
 import 'package:gym_grid/features/progress/domain/usecases/watch_history.dart';
 import 'package:gym_grid/features/progress/domain/usecases/watch_progress.dart';
+import 'package:gym_grid/features/settings/presentation/link_opener.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path/path.dart' as p;
 
 void main() {
@@ -35,9 +38,17 @@ void main() {
     await container.delete(recursive: true);
   });
 
+  final packageInfo = PackageInfo(
+    appName: 'GymGrid',
+    packageName: 'com.ninikurshavishvili.gymgrid',
+    version: '1.0.0',
+    buildNumber: '1',
+  );
+
   Future<void> register() => registerDependencies(
     database: AppDatabase(NativeDatabase.memory()),
     documentsDirectory: documents,
+    packageInfo: packageInfo,
   );
 
   test('registers the local repository behind its interface', () async {
@@ -96,6 +107,28 @@ void main() {
     await getIt<DeleteCheckIn>()(saved.id);
 
     expect(await getIt<GetCheckIn>()(saved.date), isNull);
+  });
+
+  test('provides the app version and the link opener', () async {
+    await register();
+
+    expect(getIt<PackageInfo>(), same(packageInfo));
+    expect(getIt<LinkOpener>(), isA<LinkOpener>());
+  });
+
+  test('wires deleting all data to the repository and photo store', () async {
+    await register();
+    final photo = File(p.join(container.path, 'tmp', 'camera.jpg'));
+    await photo.create(recursive: true);
+    await getIt<SaveCheckIn>()(
+      sourcePhotoPaths: [photo.path],
+      workoutType: WorkoutType.strength,
+    );
+
+    await getIt<DeleteAllCheckIns>()();
+
+    expect(await getIt<CheckInRepository>().watchAll().first, isEmpty);
+    expect(Directory(p.join(documents.path, 'photos')).listSync(), isEmpty);
   });
 
   test('deletes photos left over from an unfinished save', () async {

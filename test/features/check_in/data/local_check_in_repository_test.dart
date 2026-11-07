@@ -610,6 +610,73 @@ void main() {
     });
   });
 
+  group('deleteAll', () {
+    test('removes every check-in and every photo', () async {
+      await save(oct4);
+      await save(oct5);
+      await save(oct6, sourcePhotoPath: await cameraPhoto('other.jpg'));
+      expect(storedPhotos(), hasLength(3));
+
+      await repository.deleteAll();
+
+      expect(await repository.watchAll().first, isEmpty);
+      expect(storedPhotos(), isEmpty);
+    });
+
+    test('also removes photos that no check-in refers to', () async {
+      final orphan = File(p.join(documents.path, 'photos', 'orphan.jpg'));
+      await orphan.create(recursive: true);
+
+      await repository.deleteAll();
+
+      expect(orphan.existsSync(), isFalse);
+    });
+
+    test('does nothing when there is nothing to delete', () async {
+      await repository.deleteAll();
+
+      expect(await repository.watchAll().first, isEmpty);
+    });
+
+    test('lets anyone watching know', () async {
+      await save(oct5);
+      final emissions = repository.watchAll();
+
+      final expectation = expectLater(
+        emissions,
+        emitsInOrder([hasLength(1), isEmpty]),
+      );
+      await Future<void>.delayed(Duration.zero);
+      await repository.deleteAll();
+
+      await expectation;
+    });
+
+    test('reports photos it cannot delete, and trying again finishes the '
+        'job', () async {
+      await save(oct5);
+      repository = createRepository(_UncleanablePhotoStore(documents));
+
+      await expectLater(repository.deleteAll(), throwsA(isA<StorageFailure>()));
+      // The rows are gone already, so nothing refers to the photo left.
+      expect(await repository.findByDate(oct5), isNull);
+      expect(storedPhotos(), hasLength(1));
+
+      repository = createRepository(PhotoStore(documents));
+      await repository.deleteAll();
+      expect(storedPhotos(), isEmpty);
+    });
+
+    test('throws a StorageFailure when the database fails, and keeps the '
+        'photos', () async {
+      await save(oct5);
+      await database.close();
+
+      await expectLater(repository.deleteAll(), throwsA(isA<StorageFailure>()));
+      expect(storedPhotos(), hasLength(1));
+    });
+  });
+
   group('deleteUnreferencedPhotos', () {
     test('keeps every photo of a check-in, not only its cover', () async {
       final saved = await repository.save(
@@ -668,5 +735,15 @@ class _UndeletablePhotoStore extends PhotoStore {
   @override
   Future<void> delete(String photoPath) async {
     throw FileSystemException('Operation not permitted', photoPath);
+  }
+}
+
+/// A [PhotoStore] that can't clear out its folder, as when a file is locked.
+class _UncleanablePhotoStore extends PhotoStore {
+  const _UncleanablePhotoStore(super.documentsDirectory);
+
+  @override
+  Future<void> deleteUnreferenced(Set<String> keep) async {
+    throw const FileSystemException('Operation not permitted');
   }
 }

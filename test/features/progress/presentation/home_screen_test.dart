@@ -101,6 +101,10 @@ void main() {
               path: 'history',
               builder: (context, state) => const Text('history screen'),
             ),
+            GoRoute(
+              path: 'settings',
+              builder: (context, state) => const Text('settings screen'),
+            ),
           ],
         ),
       ],
@@ -294,6 +298,22 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('day 2026-11-06'), findsOneWidget);
+    });
+
+    testWidgets('the gear opens Settings', (tester) async {
+      final semantics = tester.ensureSemantics();
+      stubProgress(() => Stream.value(progressWith(const [])));
+      await pumpHome(tester);
+
+      expect(
+        tester.getSemantics(find.bySemanticsLabel('Settings')),
+        isSemantics(isButton: true, hasTapAction: true),
+      );
+      await tester.tap(find.bySemanticsLabel('Settings'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('settings screen'), findsOneWidget);
+      semantics.dispose();
     });
 
     testWidgets('All check-ins opens the history', (tester) async {

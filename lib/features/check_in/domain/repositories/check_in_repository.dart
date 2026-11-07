@@ -34,4 +34,10 @@ abstract interface class CheckInRepository {
   /// Deletes the check-in with [id] and its photos. Does nothing if there is
   /// no such check-in.
   Future<void> delete(String id);
+
+  /// Deletes every check-in and every photo.
+  ///
+  /// Unlike [delete], a photo that can't be removed is reported as a
+  /// failure: this is the user asking for their data to be gone.
+  Future<void> deleteAll();
 }
