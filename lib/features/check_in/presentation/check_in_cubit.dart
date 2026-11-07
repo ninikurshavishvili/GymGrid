@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../core/date/calendar_day.dart';
@@ -114,6 +116,11 @@ class CheckInCubit extends Cubit<CheckInState> {
         ],
       ),
     );
+    // A stored photo is deleted when the edit is saved. A picked one was
+    // never stored, so it can go now.
+    if (photo case PickedPhoto(:final sourcePath)) {
+      unawaited(_photoPicker.discard(sourcePath));
+    }
   }
 
   Future<void> openSettings() => _photoPicker.openSettings();
@@ -175,5 +182,19 @@ class CheckInCubit extends Cubit<CheckInState> {
       if (isClosed) return;
       emit(state.copyWith(status: CheckInStatus.failure));
     }
+  }
+
+  /// Discards the photos picked for this form.
+  ///
+  /// By the time the form closes, each one has either been stored, which
+  /// made a copy of its own, or abandoned with the form.
+  @override
+  Future<void> close() async {
+    for (final photo in state.photos) {
+      if (photo case PickedPhoto(:final sourcePath)) {
+        await _photoPicker.discard(sourcePath);
+      }
+    }
+    return super.close();
   }
 }

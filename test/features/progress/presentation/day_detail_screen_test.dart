@@ -80,6 +80,7 @@ void main() {
     updateCheckIn = _MockUpdateCheckIn();
     deleteCheckIn = _MockDeleteCheckIn();
     photoPicker = _MockPhotoPicker();
+    when(() => photoPicker.discard(any())).thenAnswer((_) async {});
     // Broadcast, because closing a plain controller that nothing ever
     // listened to never finishes.
     checkIns = StreamController<CheckIn?>.broadcast();

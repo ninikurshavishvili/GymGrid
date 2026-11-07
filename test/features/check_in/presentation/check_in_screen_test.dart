@@ -71,6 +71,7 @@ void main() {
     updateCheckIn = _MockUpdateCheckIn();
     getCheckIn = _MockGetCheckIn();
     photoPicker = _MockPhotoPicker();
+    when(() => photoPicker.discard(any())).thenAnswer((_) async {});
     haptics = [];
     when(() => getCheckIn(any())).thenAnswer((_) async => stored);
     when(

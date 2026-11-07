@@ -65,6 +65,7 @@ void main() {
     updateCheckIn = _MockUpdateCheckIn();
     getCheckIn = _MockGetCheckIn();
     photoPicker = _MockPhotoPicker();
+    when(() => photoPicker.discard(any())).thenAnswer((_) async {});
   });
 
   void stubSave(Future<CheckIn> Function() answer) {
@@ -237,6 +238,45 @@ void main() {
         const CheckInState(isEditing: true, status: CheckInStatus.loadFailed),
       ],
     );
+  });
+
+  group('picked photos are discarded', () {
+    test('when removed, as they were never stored', () {
+      final cubit = buildCubit();
+      addTearDown(cubit.close);
+      cubit
+        ..emit(const CheckInState(photos: [picked]))
+        ..removePhoto(picked);
+
+      verify(() => photoPicker.discard('/tmp/camera.jpg')).called(1);
+    });
+
+    test('but stored ones are left for the save to delete', () async {
+      final cubit = buildCubit(editingDay: day)..emit(loaded);
+      cubit.removePhoto(const StoredPhoto('photos/1.jpg'));
+      await cubit.close();
+
+      verifyNever(() => photoPicker.discard(any()));
+    });
+
+    test('when the form closes, saved or not, but not stored ones', () async {
+      final cubit = buildCubit(editingDay: day)
+        ..emit(
+          loaded.copyWith(
+            photos: [
+              const StoredPhoto('photos/1.jpg'),
+              picked,
+              const PickedPhoto('/tmp/second.jpg'),
+            ],
+          ),
+        );
+
+      await cubit.close();
+
+      verify(() => photoPicker.discard('/tmp/camera.jpg')).called(1);
+      verify(() => photoPicker.discard('/tmp/second.jpg')).called(1);
+      verifyNever(() => photoPicker.discard('photos/1.jpg'));
+    });
   });
 
   group('photos', () {

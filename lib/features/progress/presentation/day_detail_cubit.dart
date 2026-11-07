@@ -95,19 +95,26 @@ class DayDetailCubit extends Cubit<DayDetailState> {
 
     try {
       final path = await pick();
-      if (isClosed) return;
       if (path != null) {
-        final checkIn = current.checkIn;
-        await _updateCheckIn(
-          id: checkIn.id,
-          photos: [
-            for (final photoPath in checkIn.photoPaths) StoredPhoto(photoPath),
-            PickedPhoto(path),
-          ],
-          workoutType: checkIn.workoutType,
-          activity: checkIn.activity,
-          note: checkIn.note,
-        );
+        try {
+          if (isClosed) return;
+          final checkIn = current.checkIn;
+          await _updateCheckIn(
+            id: checkIn.id,
+            photos: [
+              for (final photoPath in checkIn.photoPaths)
+                StoredPhoto(photoPath),
+              PickedPhoto(path),
+            ],
+            workoutType: checkIn.workoutType,
+            activity: checkIn.activity,
+            note: checkIn.note,
+          );
+        } finally {
+          // Stored as a copy by now, or not wanted: either way, the picked
+          // file is done with.
+          await _photoPicker.discard(path);
+        }
       }
       _finishAddingPhoto();
     } on PhotoUnavailable {
