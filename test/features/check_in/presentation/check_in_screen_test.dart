@@ -22,6 +22,7 @@ import 'package:gym_grid/features/check_in/presentation/check_in_cubit.dart';
 import 'package:gym_grid/features/check_in/presentation/check_in_screen.dart';
 import 'package:gym_grid/features/check_in/presentation/photo_picker.dart';
 import 'package:gym_grid/features/check_in/presentation/widgets/photo_strip.dart';
+import 'package:gym_grid/features/check_in/presentation/widgets/rating_picker.dart';
 import 'package:gym_grid/features/check_in/presentation/workout_type_labels.dart';
 import 'package:mocktail/mocktail.dart';
 
@@ -91,6 +92,8 @@ void main() {
         workoutType: any(named: 'workoutType'),
         activity: any(named: 'activity'),
         note: any(named: 'note'),
+        effort: any(named: 'effort'),
+        energy: any(named: 'energy'),
       ),
     ).thenAnswer((_) => answer());
   }
@@ -183,6 +186,24 @@ void main() {
     await tester.ensureVisible(find.text(label));
     await tester.pumpAndSettle();
     await tester.tap(find.text(label));
+    await tester.pumpAndSettle();
+  }
+
+  /// The pill for [step] in the [title] row, such as Effort's "80%".
+  Finder ratingPill(String title, String step) => find.descendant(
+    of: find.byWidgetPredicate(
+      (widget) => widget is RatingPicker && widget.title == title,
+    ),
+    matching: find.text(step),
+  );
+
+  /// Scrolls the pill into view, which is below the fold on a phone, and
+  /// taps it.
+  Future<void> rate(WidgetTester tester, String title, String step) async {
+    final pill = ratingPill(title, step);
+    await tester.ensureVisible(pill);
+    await tester.pumpAndSettle();
+    await tester.tap(pill);
     await tester.pumpAndSettle();
   }
 
@@ -341,6 +362,9 @@ void main() {
       await tester.enterText(find.byType(TextField), 'Felt strong');
       await tester.pump();
 
+      // Below the ratings, so off screen on a phone.
+      await tester.ensureVisible(find.text('Legs'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Legs'));
       await tester.pumpAndSettle();
 
@@ -385,6 +409,58 @@ void main() {
       final field = tester.widget<TextField>(find.byType(TextField));
       expect(field.controller!.text, hasLength(CheckIn.maxNoteLength));
     });
+
+    // A text field scrolls only its cursor into view, which left the bottom
+    // of the field and its count hidden behind the Save bar while typing.
+    for (final (name, textScale, screen) in [
+      ('', 1.0, phoneScreen),
+      (' at 3x text size', 3.0, phoneScreen),
+      (' on the smallest iPhone', 1.0, smallestPhoneScreen),
+    ]) {
+      testWidgets('stays above the Save bar while typing with the keyboard '
+          'up$name', (tester) async {
+        await pumpForm(
+          tester,
+          editingDay: today,
+          textScale: textScale,
+          screen: screen,
+        );
+        // Scrolls only until the field shows, near the bottom, as when the
+        // user reaches it.
+        await tester.dragUntilVisible(
+          find.byType(TextField),
+          find.byType(ListView).first,
+          const Offset(0, -100),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.byType(TextField));
+        // An iPhone keyboard with its suggestion bar, at the view's three
+        // pixels per point.
+        tester.view.viewInsets = const FakeViewPadding(bottom: 336.0 * 3);
+        addTearDown(tester.view.resetViewInsets);
+        await tester.pumpAndSettle();
+
+        await tester.enterText(
+          find.byType(TextField),
+          'Intervals\nHill sprints\nCool-down walk',
+        );
+        await tester.pumpAndSettle();
+
+        final visibleBottom = tester
+            .getRect(find.byType(ListView).first)
+            .bottom;
+        expect(
+          tester.getRect(find.byType(TextField)).bottom,
+          lessThanOrEqualTo(visibleBottom),
+        );
+        expect(
+          tester
+              .getRect(find.textContaining('/${CheckIn.maxNoteLength}'))
+              .bottom,
+          lessThanOrEqualTo(visibleBottom),
+        );
+      });
+    }
   });
 
   group('Other', () {
@@ -511,6 +587,172 @@ void main() {
         ),
       );
       semantics.dispose();
+    });
+  });
+
+  group('effort and energy', () {
+    testWidgets('each offers five steps under its own heading', (tester) async {
+      final semantics = tester.ensureSemantics();
+      await pumpForm(tester);
+      await tester.ensureVisible(ratingPill('Energy', '100%'));
+      await tester.pumpAndSettle();
+
+      for (final title in ['Effort', 'Energy']) {
+        expect(
+          tester.getSemantics(find.bySemanticsLabel(title)),
+          isSemantics(isHeader: true),
+        );
+        for (final step in ['20%', '40%', '60%', '80%', '100%']) {
+          expect(
+            tester.getSemantics(find.bySemanticsLabel('$title $step')),
+            isSemantics(
+              isButton: true,
+              isSelected: false,
+              isInMutuallyExclusiveGroup: true,
+              hasTapAction: true,
+            ),
+          );
+        }
+      }
+      semantics.dispose();
+    });
+
+    testWidgets('a step is a choice, and tapping it again clears it', (
+      tester,
+    ) async {
+      final semantics = tester.ensureSemantics();
+      await pumpForm(tester);
+
+      await rate(tester, 'Effort', '80%');
+      expect(
+        tester.getSemantics(find.bySemanticsLabel('Effort 80%')),
+        isSemantics(
+          isButton: true,
+          isSelected: true,
+          isInMutuallyExclusiveGroup: true,
+          hasTapAction: true,
+        ),
+      );
+      expect(
+        tester.getSemantics(find.bySemanticsLabel('Energy 80%')),
+        isSemantics(
+          isButton: true,
+          isSelected: false,
+          isInMutuallyExclusiveGroup: true,
+          hasTapAction: true,
+        ),
+      );
+
+      await rate(tester, 'Effort', '80%');
+      expect(
+        tester.getSemantics(find.bySemanticsLabel('Effort 80%')),
+        isSemantics(
+          isButton: true,
+          isSelected: false,
+          isInMutuallyExclusiveGroup: true,
+          hasTapAction: true,
+        ),
+      );
+      semantics.dispose();
+    });
+
+    testWidgets('choosing one gives a light haptic tap', (tester) async {
+      await pumpForm(tester);
+      haptics.clear();
+
+      await rate(tester, 'Energy', '60%');
+
+      expect(haptics, ['HapticFeedbackType.selectionClick']);
+    });
+
+    testWidgets('saves the chosen ratings', (tester) async {
+      stubSave(() async => stored);
+      await pumpForm(tester);
+      await takePhoto(tester);
+      await chooseWorkout(tester, 'Strength');
+      await rate(tester, 'Effort', '80%');
+      await rate(tester, 'Energy', '40%');
+
+      await tester.tap(find.text('Save check-in'));
+      await tester.pumpAndSettle();
+
+      verify(
+        () => saveCheckIn(
+          sourcePhotoPaths: ['/no/such/camera.jpg'],
+          workoutType: WorkoutType.strength,
+          note: '',
+          effort: Rating.high,
+          energy: Rating.low,
+        ),
+      ).called(1);
+    });
+
+    testWidgets('an edit opens with the stored ratings chosen, and changing '
+        'one can be saved', (tester) async {
+      final semantics = tester.ensureSemantics();
+      stubUpdate(() async => stored);
+      when(() => getCheckIn(any())).thenAnswer(
+        (_) async => CheckIn(
+          id: '1',
+          date: today,
+          photoPaths: const ['photos/1.jpg'],
+          workoutType: WorkoutType.cardio,
+          effort: Rating.max,
+          energy: Rating.medium,
+          createdAt: DateTime(2026, 11, 6, 7, 42),
+        ),
+      );
+      await pumpForm(tester, editingDay: today);
+      await tester.ensureVisible(ratingPill('Energy', '60%'));
+      await tester.pumpAndSettle();
+
+      expect(
+        tester.getSemantics(find.bySemanticsLabel('Effort 100%')),
+        isSemantics(
+          isButton: true,
+          isSelected: true,
+          isInMutuallyExclusiveGroup: true,
+          hasTapAction: true,
+        ),
+      );
+      expect(
+        tester.getSemantics(find.bySemanticsLabel('Energy 60%')),
+        isSemantics(
+          isButton: true,
+          isSelected: true,
+          isInMutuallyExclusiveGroup: true,
+          hasTapAction: true,
+        ),
+      );
+      expect(button(tester).onPressed, isNull);
+
+      await rate(tester, 'Energy', '60%');
+      expect(button(tester).onPressed, isNotNull);
+      await tester.tap(find.text('Save changes'));
+      await tester.pumpAndSettle();
+
+      verify(
+        () => updateCheckIn(
+          id: '1',
+          photos: const [StoredPhoto('photos/1.jpg')],
+          workoutType: WorkoutType.cardio,
+          activity: null,
+          effort: Rating.max,
+          energy: null,
+          note: '',
+        ),
+      ).called(1);
+      semantics.dispose();
+    });
+
+    testWidgets('choosing only a rating closes straight away', (tester) async {
+      await pumpForm(tester);
+      await rate(tester, 'Effort', '20%');
+
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('previous screen'), findsOneWidget);
     });
   });
 
@@ -1026,6 +1268,19 @@ void main() {
       await expectLater(tester, meetsGuideline(textContrastGuideline));
       semantics.dispose();
     });
+  });
+
+  testWidgets('ratings have labelled, comfortable targets, and a chosen one '
+      'has enough contrast', (tester) async {
+    final semantics = tester.ensureSemantics();
+    await pumpForm(tester);
+    await rate(tester, 'Effort', '100%');
+    await rate(tester, 'Energy', '20%');
+
+    await expectLater(tester, meetsGuideline(labeledTapTargetGuideline));
+    await expectLater(tester, meetsGuideline(iOSTapTargetGuideline));
+    await expectLater(tester, meetsGuideline(textContrastGuideline));
+    semantics.dispose();
   });
 
   group('on the smallest iPhone at 3x text size', () {

@@ -10,6 +10,7 @@ import 'package:gym_grid/core/date/clock.dart';
 import 'package:gym_grid/core/errors/failure.dart';
 import 'package:gym_grid/features/check_in/domain/entities/check_in.dart';
 import 'package:gym_grid/features/check_in/domain/entities/other_activity.dart';
+import 'package:gym_grid/features/check_in/domain/entities/rating.dart';
 import 'package:gym_grid/features/check_in/domain/entities/workout_type.dart';
 import 'package:gym_grid/features/check_in/domain/repositories/photo_locator.dart';
 import 'package:gym_grid/features/progress/domain/entities/progress.dart';
@@ -50,6 +51,8 @@ void main() {
     OtherActivity? activity,
     String? note,
     String? photoPath,
+    Rating? effort,
+    Rating? energy,
   }) {
     return CheckIn(
       id: '$day',
@@ -58,6 +61,8 @@ void main() {
       workoutType: workoutType,
       activity: activity,
       note: note,
+      effort: effort,
+      energy: energy,
       createdAt: day.toLocalDateTime().add(
         const Duration(hours: 7, minutes: 42),
       ),
@@ -192,6 +197,35 @@ void main() {
       expect(find.text('Intervals'), findsOneWidget);
       expect(find.text('Check in'), findsNothing);
       expect(find.text('1 check-in'), findsOneWidget);
+    });
+
+    testWidgets("today's row shows its ratings and reads them out", (
+      tester,
+    ) async {
+      final semantics = tester.ensureSemantics();
+      stubProgress(
+        () => Stream.value(
+          progressWith([
+            checkInOn(
+              today,
+              workoutType: WorkoutType.cardio,
+              effort: Rating.max,
+              energy: Rating.medium,
+            ),
+          ]),
+        ),
+      );
+
+      await pumpHome(tester);
+
+      expect(find.text('Effort 100% · Energy 60%'), findsOneWidget);
+      expect(
+        find.bySemanticsLabel(
+          'Today: Cardio, checked in at 7:42 AM, Effort 100%, Energy 60%',
+        ),
+        findsOneWidget,
+      );
+      semantics.dispose();
     });
 
     testWidgets("names today's Other workout by its activity", (tester) async {

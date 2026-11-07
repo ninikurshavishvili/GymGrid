@@ -26,18 +26,19 @@ import 'widgets/other_activity_picker.dart';
 import 'widgets/photo_problem_message.dart';
 import 'widgets/photo_source_sheet.dart';
 import 'widgets/photo_strip.dart';
+import 'widgets/rating_picker.dart';
 import 'widgets/workout_type_picker.dart';
 import 'workout_type_labels.dart';
 
-/// The check-in form: photos, a workout type and an optional note, for a new
-/// check-in or an existing one.
+/// The check-in form: photos, a workout type, and optionally effort, energy
+/// and a note, for a new check-in or an existing one.
 ///
 /// Shown as a modal with Cancel at the top and the one action pinned at the
 /// bottom, which stays above the keyboard. The form responds as it's filled
 /// in: the note's prompt and suggestions follow the workout type, Other asks
-/// what the workout was, and the button says what's still needed. Screens showing check-ins update by
-/// themselves after a save, through the database stream, so this only has
-/// to close.
+/// what the workout was, and the button says what's still needed. Screens
+/// showing check-ins update by themselves after a save, through the
+/// database stream, so this only has to close.
 class CheckInScreen extends StatefulWidget {
   const CheckInScreen({required this.photoLocator, super.key});
 
@@ -239,6 +240,18 @@ class _Form extends StatelessWidget {
           selected: state.activity,
           onToggled: cubit.toggleActivity,
         ),
+        RatingPicker(
+          title: 'Effort',
+          selected: state.effort,
+          onToggled: cubit.toggleEffort,
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        RatingPicker(
+          title: 'Energy',
+          selected: state.energy,
+          onToggled: cubit.toggleEnergy,
+        ),
+        const SizedBox(height: AppSpacing.lg),
         NoteSuggestions(
           workoutType: state.workoutType,
           note: state.note,
@@ -264,6 +277,7 @@ class _Form extends StatelessWidget {
                 ),
           minLines: 2,
           maxLines: 6,
+          scrollPadding: _noteScrollPadding(context, text.footnote),
           keyboardType: TextInputType.multiline,
           textCapitalization: TextCapitalization.sentences,
           decoration: InputDecoration(
@@ -273,6 +287,41 @@ class _Form extends StatelessWidget {
       ],
     );
   }
+}
+
+/// How much room the note keeps around its cursor when it scrolls the form
+/// to show it, as while typing with the keyboard up.
+///
+/// A text field only brings its cursor into view, plus 20 points. Below the
+/// last line, though, are the field's own padding and the character count,
+/// which then stayed hidden behind the Save bar. This adds them below the
+/// cursor, measured at the current text size, like setting a scroll view's
+/// content inset to clear an accessory view in UIKit.
+EdgeInsets _noteScrollPadding(BuildContext context, TextStyle counterStyle) {
+  // TextField's own default margin.
+  const margin = AppSpacing.xl;
+  // Material leaves this gap between the field and its counter.
+  const counterGap = AppSpacing.xs;
+
+  final fieldPadding =
+      Theme.of(context).inputDecorationTheme.contentPadding
+          ?.resolve(Directionality.of(context))
+          .bottom ??
+      0;
+  final counter = TextPainter(
+    text: TextSpan(text: '0', style: counterStyle),
+    textScaler: MediaQuery.textScalerOf(context),
+    textDirection: Directionality.of(context),
+  )..layout();
+  final counterHeight = counter.height;
+  counter.dispose();
+
+  return EdgeInsets.fromLTRB(
+    margin,
+    margin,
+    margin,
+    margin + fieldPadding + counterGap + counterHeight,
+  );
 }
 
 /// The photo area before there's a photo: one big target for the camera.

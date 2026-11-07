@@ -7,6 +7,7 @@ import '../../../core/errors/failure.dart';
 import '../domain/entities/check_in.dart';
 import '../domain/entities/check_in_photo.dart';
 import '../domain/entities/other_activity.dart';
+import '../domain/entities/rating.dart';
 import '../domain/entities/workout_type.dart';
 import '../domain/usecases/get_check_in.dart';
 import '../domain/usecases/save_check_in.dart';
@@ -63,6 +64,8 @@ class CheckInCubit extends Cubit<CheckInState> {
                 ],
                 workoutType: checkIn.workoutType,
                 activity: () => checkIn.activity,
+                effort: () => checkIn.effort,
+                energy: () => checkIn.energy,
                 note: checkIn.note ?? '',
                 status: CheckInStatus.editing,
               ),
@@ -146,6 +149,17 @@ class CheckInCubit extends Cubit<CheckInState> {
     );
   }
 
+  /// Rates the workout's effort, or clears it if [effort] is already
+  /// chosen.
+  void toggleEffort(Rating effort) {
+    emit(state.copyWith(effort: () => state.effort == effort ? null : effort));
+  }
+
+  /// Rates the user's energy, or clears it if [energy] is already chosen.
+  void toggleEnergy(Rating energy) {
+    emit(state.copyWith(energy: () => state.energy == energy ? null : energy));
+  }
+
   void noteChanged(String note) => emit(state.copyWith(note: note));
 
   /// Saves the check-in. On failure the form keeps its values, so the user
@@ -166,6 +180,8 @@ class CheckInCubit extends Cubit<CheckInState> {
           workoutType: workoutType,
           activity: state.activity,
           note: state.note,
+          effort: state.effort,
+          energy: state.energy,
         );
       } else {
         await _updateCheckIn(
@@ -174,9 +190,8 @@ class CheckInCubit extends Cubit<CheckInState> {
           workoutType: workoutType,
           activity: state.activity,
           note: state.note,
-          // The form can't change these yet, so an edit keeps them.
-          effort: original.effort,
-          energy: original.energy,
+          effort: state.effort,
+          energy: state.energy,
         );
       }
       if (isClosed) return;

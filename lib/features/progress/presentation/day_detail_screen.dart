@@ -18,8 +18,11 @@ import '../../../app/theme/app_theme.dart';
 import '../../../core/date/calendar_day.dart';
 import '../../../core/widgets/navigation_back_button.dart';
 import '../../../core/widgets/surface_card.dart';
+import '../../check_in/domain/entities/check_in.dart';
+import '../../check_in/domain/entities/rating.dart';
 import '../../check_in/domain/repositories/photo_locator.dart';
 import '../../check_in/presentation/check_in_display.dart';
+import '../../check_in/presentation/rating_labels.dart';
 import '../../check_in/presentation/widgets/photo_problem_message.dart';
 import '../../check_in/presentation/widgets/photo_source_sheet.dart';
 import '../../check_in/presentation/workout_type_labels.dart';
@@ -27,8 +30,8 @@ import 'day_detail_cubit.dart';
 import 'day_detail_state.dart';
 import 'widgets/photo_pager.dart';
 
-/// One day's check-in: its photos, workout and note, with what can be done
-/// to it. Stays current by itself when the check-in is edited.
+/// One day's check-in: its photos, workout, note and ratings, with what can
+/// be done to it. Stays current by itself when the check-in is edited.
 class DayDetailScreen extends StatelessWidget {
   const DayDetailScreen({
     required this.day,
@@ -183,6 +186,10 @@ class _Content extends StatelessWidget {
             const SizedBox(height: AppSpacing.sm),
             Text(note, style: text.body.copyWith(color: colors.textBody)),
           ],
+          if (checkIn.ratingLabels.isNotEmpty) ...[
+            const SizedBox(height: AppSpacing.lg),
+            _Ratings(checkIn: checkIn),
+          ],
           const SizedBox(height: AppSpacing.xl),
           if (photoProblem != null)
             Padding(
@@ -239,6 +246,58 @@ class _Content extends StatelessWidget {
 }
 
 /// A row of a grouped list that performs an action.
+/// The effort and energy the user rated, side by side, like the streak
+/// cards on home. A rating left out doesn't appear.
+class _Ratings extends StatelessWidget {
+  const _Ratings({required this.checkIn});
+
+  final CheckIn checkIn;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final text = context.textStyles;
+    final ratings = <(String, Rating)>[
+      if (checkIn.effort case final effort?) ('Effort', effort),
+      if (checkIn.energy case final energy?) ('Energy', energy),
+    ];
+    final values = [
+      for (final (name, rating) in ratings)
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          spacing: AppSpacing.xxs,
+          children: [
+            Text(
+              name,
+              style: text.footnote.copyWith(color: colors.textSecondary),
+            ),
+            Text(
+              rating.label,
+              style: text.header.copyWith(color: colors.textPrimary),
+            ),
+          ],
+        ),
+    ];
+
+    return SurfaceCard(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      // Read once, as "Effort 80%, Energy 40%".
+      semanticLabel: checkIn.ratingLabels.join(', '),
+      // Stacked at accessibility sizes, where "100%" needs the full width.
+      child: context.usesAccessibilityTextSize
+          ? Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              spacing: AppSpacing.md,
+              children: values,
+            )
+          : Row(
+              spacing: AppSpacing.lg,
+              children: [for (final value in values) Expanded(child: value)],
+            ),
+    );
+  }
+}
+
 class _ActionRow extends StatelessWidget {
   const _ActionRow({
     required this.icon,
