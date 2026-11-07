@@ -87,10 +87,7 @@ GoRouter createRouter() {
               ),
               child: SettingsScreen(
                 version: _versionOf(getIt<PackageInfo>()),
-                privacyPolicy: switch (AppLinks.privacyPolicy) {
-                  final url? => Uri.parse(url),
-                  null => null,
-                },
+                privacyPolicy: Uri.parse(AppLinks.privacyPolicy),
               ),
             ),
           ),

@@ -121,7 +121,10 @@ void main() {
 
     final screen = tester.widget<SettingsScreen>(find.byType(SettingsScreen));
     expect(screen.version, '1.0.0 (1)');
-    expect(screen.privacyPolicy, isNull);
+    expect(
+      screen.privacyPolicy,
+      Uri.parse('https://ninikurshavishvili.github.io/GymGrid/privacy/'),
+    );
 
     await tester.tap(find.bySemanticsLabel('Back'));
     await tester.pumpAndSettle();
