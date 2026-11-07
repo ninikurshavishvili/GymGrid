@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gym_grid/app/router.dart';
 import 'package:gym_grid/core/date/calendar_day.dart';
+import 'package:gym_grid/core/date/clock.dart';
 import 'package:gym_grid/core/errors/failure.dart';
 import 'package:gym_grid/features/check_in/domain/entities/check_in.dart';
 import 'package:gym_grid/features/check_in/domain/entities/workout_type.dart';
@@ -33,10 +34,14 @@ class _FakePhotoLocator implements PhotoLocator {
 
 void main() {
   late _MockWatchProgress watchProgress;
+  late DateTime now;
 
   final today = CalendarDay(2026, 11, 6);
 
-  setUp(() => watchProgress = _MockWatchProgress());
+  setUp(() {
+    watchProgress = _MockWatchProgress();
+    now = DateTime(2026, 11, 6, 12);
+  });
 
   CheckIn checkInOn(
     CalendarDay day, {
@@ -64,13 +69,19 @@ void main() {
   }
 
   /// Pumps the home screen with stand-ins for the screens it opens.
-  Future<void> pumpHome(WidgetTester tester, {double textScale = 1}) async {
+  Future<void> pumpHome(
+    WidgetTester tester, {
+    double textScale = 1,
+    Size screen = phoneScreen,
+  }) async {
     final router = GoRouter(
       routes: [
         GoRoute(
           path: AppRoutes.home,
           builder: (context, state) => BlocProvider(
-            create: (_) => HomeCubit(watchProgress: watchProgress)..watch(),
+            create: (_) =>
+                HomeCubit(watchProgress: watchProgress, clock: Clock(() => now))
+                  ..watch(),
             child: const HomeScreen(photoLocator: _FakePhotoLocator()),
           ),
           routes: [
@@ -89,7 +100,7 @@ void main() {
     );
     addTearDown(router.dispose);
 
-    await pumpScreen(tester, router, textScale: textScale);
+    await pumpScreen(tester, router, textScale: textScale, screen: screen);
     await tester.pump();
   }
 
@@ -329,6 +340,131 @@ void main() {
         findsNWidgets(2),
       );
       semantics.dispose();
+    });
+  });
+
+  group('as the date changes', () {
+    void resume(WidgetTester tester) {
+      tester.binding
+        ..handleAppLifecycleStateChanged(AppLifecycleState.inactive)
+        ..handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    }
+
+    testWidgets('returning on a later day shows that day', (tester) async {
+      stubProgress(() => Stream.value(progressWith([checkInOn(today)])));
+      await pumpHome(tester);
+      expect(find.text('Fri, Nov 6'), findsOneWidget);
+      expect(find.text('Check in'), findsNothing);
+
+      now = DateTime(2026, 11, 7, 9);
+      resume(tester);
+      await tester.pump();
+
+      expect(find.text('Sat, Nov 7'), findsOneWidget);
+      expect(find.text('Check in'), findsOneWidget);
+      expect(find.text('Check in to keep your 1-day streak'), findsOneWidget);
+    });
+
+    testWidgets('midnight passing on screen brings the button back', (
+      tester,
+    ) async {
+      now = DateTime(2026, 11, 6, 23, 59);
+      stubProgress(() => Stream.value(progressWith([checkInOn(today)])));
+      await pumpHome(tester);
+
+      now = DateTime(2026, 11, 7);
+      await tester.pump(const Duration(minutes: 1));
+
+      expect(find.text('Sat, Nov 7'), findsOneWidget);
+      expect(find.text('Check in'), findsOneWidget);
+    });
+
+    testWidgets('a new year brings a new grid, starting at January', (
+      tester,
+    ) async {
+      final dec31 = CalendarDay(2026, 12, 31);
+      now = DateTime(2026, 12, 31, 12);
+      stubProgress(
+        () => Stream.value(progressWith([checkInOn(dec31)], asOf: dec31)),
+      );
+      await pumpHome(tester);
+      expect(find.text('2026'), findsOneWidget);
+      final december = tester.state<ScrollableState>(sideways()).position;
+      expect(december.pixels, greaterThan(0));
+
+      now = DateTime(2027, 1, 1, 9);
+      resume(tester);
+      await tester.pump();
+
+      expect(find.text('2027'), findsOneWidget);
+      expect(find.text('0 check-ins'), findsOneWidget);
+      expect(find.text('Jan'), findsOneWidget);
+      expect(tester.state<ScrollableState>(sideways()).position.pixels, 0);
+    });
+  });
+
+  group('accessibility', () {
+    testWidgets('every control has a label', (tester) async {
+      final semantics = tester.ensureSemantics();
+      stubProgress(() => Stream.value(progressWith([checkInOn(today)])));
+      await pumpHome(tester);
+
+      await expectLater(tester, meetsGuideline(labeledTapTargetGuideline));
+      semantics.dispose();
+    });
+
+    testWidgets('text has enough contrast', (tester) async {
+      final semantics = tester.ensureSemantics();
+      stubProgress(
+        () => Stream.value(progressWith([checkInOn(today.addDays(-1))])),
+      );
+      await pumpHome(tester);
+
+      await expectLater(tester, meetsGuideline(textContrastGuideline));
+      semantics.dispose();
+    });
+  });
+
+  group('on the smallest iPhone at 3x text size', () {
+    Future<void> expectFits(WidgetTester tester) async {
+      await pumpHome(tester, textScale: 3, screen: smallestPhoneScreen);
+      expect(tester.takeException(), isNull);
+
+      await tester.drag(find.byType(CustomScrollView), const Offset(0, -3000));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+    }
+
+    testWidgets('a first launch fits', (tester) async {
+      stubProgress(() => Stream.value(progressWith(const [])));
+
+      await expectFits(tester);
+    });
+
+    testWidgets('a checked-in day fits', (tester) async {
+      stubProgress(
+        () => Stream.value(
+          progressWith([checkInOn(today, note: 'A long note ' * 8)]),
+        ),
+      );
+
+      await expectFits(tester);
+    });
+
+    testWidgets('an at-risk streak fits', (tester) async {
+      stubProgress(
+        () => Stream.value(progressWith([checkInOn(today.addDays(-1))])),
+      );
+
+      await expectFits(tester);
+    });
+
+    testWidgets('a failure fits', (tester) async {
+      stubProgress(() => Stream.error(const StorageFailure()));
+
+      await pumpHome(tester, textScale: 3, screen: smallestPhoneScreen);
+
+      expect(tester.takeException(), isNull);
     });
   });
 

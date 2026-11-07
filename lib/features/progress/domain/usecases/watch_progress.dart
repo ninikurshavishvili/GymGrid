@@ -20,7 +20,7 @@ class WatchProgress {
   ///
   /// Today is read for each emission, so nothing new is emitted when the
   /// date changes by itself. A subscriber that stays open past midnight
-  /// sees the old day until the next change or until it subscribes again.
+  /// has to recalculate for the new day, as `HomeCubit` does.
   Stream<Progress> call() => _repository.watchAll().map(
     (checkIns) => Progress.from(checkIns, today: _clock.today()),
   );

@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
@@ -87,6 +86,7 @@ void main() {
     WidgetTester tester,
     CheckIn? initial, {
     double textScale = 1,
+    Size screen = phoneScreen,
   }) async {
     final router = GoRouter(
       routes: [
@@ -122,7 +122,7 @@ void main() {
     );
     addTearDown(router.dispose);
 
-    await pumpScreen(tester, router, textScale: textScale);
+    await pumpScreen(tester, router, textScale: textScale, screen: screen);
     unawaited(router.push(AppRoutes.dayDetail(day)));
     await tester.pump();
     checkIns.add(initial);
@@ -283,6 +283,27 @@ void main() {
 
       expect(find.text('Add photo'), findsNothing);
     });
+  });
+
+  testWidgets('Back returns to the previous screen', (tester) async {
+    await pumpDay(tester, checkInWith());
+
+    await tester.tap(find.byIcon(CupertinoIcons.back));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(DayDetailScreen), findsNothing);
+    expect(find.text('home screen'), findsOneWidget);
+  });
+
+  testWidgets('VoiceOver gets one working Back control', (tester) async {
+    final semantics = tester.ensureSemantics();
+    await pumpDay(tester, checkInWith());
+
+    expect(
+      tester.getSemantics(find.bySemanticsLabel('Back')),
+      isSemantics(isButton: true, hasTapAction: true),
+    );
+    semantics.dispose();
   });
 
   testWidgets('VoiceOver can activate the actions', (tester) async {
@@ -454,6 +475,50 @@ void main() {
 
     testWidgets('an empty day fits', (tester) async {
       await pumpDay(tester, null, textScale: 3);
+
+      expect(tester.takeException(), isNull);
+    });
+  });
+
+  group('accessibility', () {
+    testWidgets('controls are labelled and comfortable to tap', (tester) async {
+      final semantics = tester.ensureSemantics();
+      await pumpDay(tester, checkInWith());
+
+      await expectLater(tester, meetsGuideline(labeledTapTargetGuideline));
+      await expectLater(tester, meetsGuideline(iOSTapTargetGuideline));
+      semantics.dispose();
+    });
+
+    testWidgets('text has enough contrast', (tester) async {
+      final semantics = tester.ensureSemantics();
+      await pumpDay(tester, checkInWith());
+
+      await expectLater(tester, meetsGuideline(textContrastGuideline));
+      semantics.dispose();
+    });
+  });
+
+  group('on the smallest iPhone at 3x text size', () {
+    testWidgets('a full check-in fits', (tester) async {
+      await pumpDay(
+        tester,
+        checkInWith(
+          photoPaths: const ['photos/1.jpg', 'photos/2.jpg'],
+          note: 'A long note about the session ' * 6,
+        ),
+        textScale: 3,
+        screen: smallestPhoneScreen,
+      );
+      expect(tester.takeException(), isNull);
+
+      await tester.drag(find.byType(ListView), const Offset(0, -3000));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('an empty day fits', (tester) async {
+      await pumpDay(tester, null, textScale: 3, screen: smallestPhoneScreen);
 
       expect(tester.takeException(), isNull);
     });

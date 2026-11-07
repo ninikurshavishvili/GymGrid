@@ -50,6 +50,8 @@ class DayDetailScreen extends StatelessWidget {
       builder: (context, state) {
         return Scaffold(
           appBar: CupertinoNavigationBar(
+            automaticallyImplyLeading: false,
+            leading: const _BackButton(),
             middle: Text(date),
             trailing: state is DayDetailLoaded && !state.isBusy
                 ? CupertinoButton(
@@ -82,6 +84,33 @@ class DayDetailScreen extends StatelessWidget {
           },
         );
       },
+    );
+  }
+}
+
+/// Stands in for Flutter's own Cupertino back button, whose tappable part
+/// has no label and whose label can't be tapped. VoiceOver gets one control
+/// here, named and usable.
+class _BackButton extends StatelessWidget {
+  const _BackButton();
+
+  void _goBack(BuildContext context) {
+    unawaited(Navigator.of(context).maybePop());
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      container: true,
+      button: true,
+      label: 'Back',
+      onTap: () => _goBack(context),
+      excludeSemantics: true,
+      child: CupertinoButton(
+        padding: EdgeInsets.zero,
+        onPressed: () => _goBack(context),
+        child: Icon(CupertinoIcons.back, color: context.colors.actionGreen),
+      ),
     );
   }
 }

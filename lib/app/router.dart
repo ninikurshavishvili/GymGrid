@@ -48,7 +48,8 @@ GoRouter createRouter() {
         builder: (context, state) => BlocProvider(
           // BlocProvider owns the Cubit and closes it with the screen, like
           // a SwiftUI `@StateObject`.
-          create: (_) => HomeCubit(watchProgress: getIt())..watch(),
+          create: (_) =>
+              HomeCubit(watchProgress: getIt(), clock: getIt())..watch(),
           child: HomeScreen(photoLocator: getIt()),
         ),
         routes: [
