@@ -1,8 +1,6 @@
 <div align="center">
 
-<!-- Add docs/images/app-icon.png (rounded, ~512px), then uncomment:
 <img src="docs/images/app-icon.png" alt="GymGrid app icon" width="120" />
--->
 
 # GymGrid
 
@@ -66,7 +64,8 @@ _Screenshots coming soon._
 - [x] History of every check-in, and named Other workouts
 - [x] Settings: privacy, delete all data, licenses and version
 - [ ] Android build and testing
-- [ ] App icon and screenshots
+- [x] App icon and launch screen
+- [ ] Screenshots and real-iPhone testing
 
 ### Later
 
