@@ -1,6 +1,7 @@
 import 'package:equatable/equatable.dart';
 
 import '../../../../core/date/calendar_day.dart';
+import 'other_activity.dart';
 import 'workout_type.dart';
 
 /// A check-in that hasn't been stored yet, passed to
@@ -15,12 +16,17 @@ class NewCheckIn extends Equatable {
     required this.sourcePhotoPaths,
     required this.workoutType,
     required this.createdAt,
+    this.activity,
     this.note,
-  });
+  }) : assert(
+         activity == null || workoutType == WorkoutType.other,
+         'Only an Other workout has an activity',
+       );
 
   final CalendarDay date;
   final List<String> sourcePhotoPaths;
   final WorkoutType workoutType;
+  final OtherActivity? activity;
   final String? note;
   final DateTime createdAt;
 
@@ -29,6 +35,7 @@ class NewCheckIn extends Equatable {
     date,
     sourcePhotoPaths,
     workoutType,
+    activity,
     note,
     createdAt,
   ];

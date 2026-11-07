@@ -24,6 +24,10 @@ class CheckIns extends Table {
 
   TextColumn get workoutType => text().map(const WorkoutTypeConverter())();
 
+  /// Only ever set for an Other workout. Added in schema version 3.
+  TextColumn get activity =>
+      text().map(const OtherActivityConverter()).nullable()();
+
   TextColumn get note => text().nullable()();
 
   DateTimeColumn get createdAt => dateTime()();

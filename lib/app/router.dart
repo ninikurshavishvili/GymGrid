@@ -9,6 +9,8 @@ import '../features/check_in/presentation/check_in_cubit.dart';
 import '../features/check_in/presentation/check_in_screen.dart';
 import '../features/progress/presentation/day_detail_cubit.dart';
 import '../features/progress/presentation/day_detail_screen.dart';
+import '../features/progress/presentation/history_cubit.dart';
+import '../features/progress/presentation/history_screen.dart';
 import '../features/progress/presentation/home_cubit.dart';
 import '../features/progress/presentation/home_screen.dart';
 import 'di.dart';
@@ -20,6 +22,9 @@ abstract final class AppRoutes {
 
   static const String _checkInSegment = 'check-in';
   static const String checkIn = '/$_checkInSegment';
+
+  static const String _historySegment = 'history';
+  static const String history = '/$_historySegment';
 
   static const String _dayParam = 'date';
   static const String _dayDetailSegment = 'day/:$_dayParam';
@@ -37,8 +42,10 @@ abstract final class AppRoutes {
 
 /// Builds the app's route table.
 ///
-/// Check-in and day detail are children of home, so a deep link to
-/// `/day/2026-10-03` still has home underneath it to go back to.
+/// Check-in, history and day detail are children of home, so a deep link to
+/// `/day/2026-10-03` still has home underneath it to go back to. A day
+/// opened from history is pushed on top of it instead, so Back returns
+/// there.
 GoRouter createRouter() {
   return GoRouter(
     initialLocation: AppRoutes.home,
@@ -56,6 +63,13 @@ GoRouter createRouter() {
           GoRoute(
             path: AppRoutes._checkInSegment,
             pageBuilder: (context, state) => _checkInPage(state),
+          ),
+          GoRoute(
+            path: AppRoutes._historySegment,
+            builder: (context, state) => BlocProvider(
+              create: (_) => HistoryCubit(watchHistory: getIt())..watch(),
+              child: HistoryScreen(photoLocator: getIt()),
+            ),
           ),
           GoRoute(
             path: AppRoutes._dayDetailSegment,

@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 
 import '../domain/entities/check_in.dart';
 import '../domain/entities/check_in_photo.dart';
+import '../domain/entities/other_activity.dart';
 import '../domain/entities/workout_type.dart';
 import 'photo_picker.dart';
 
@@ -16,6 +17,7 @@ class CheckInState extends Equatable {
     this.original,
     this.photos = const [],
     this.workoutType,
+    this.activity,
     this.note = '',
     this.status = CheckInStatus.editing,
     this.photoProblem,
@@ -32,6 +34,10 @@ class CheckInState extends Equatable {
   final List<CheckInPhoto> photos;
 
   final WorkoutType? workoutType;
+
+  /// Only ever set while [workoutType] is Other.
+  final OtherActivity? activity;
+
   final String note;
   final CheckInStatus status;
   final PhotoProblem? photoProblem;
@@ -62,16 +68,18 @@ class CheckInState extends Equatable {
           for (final path in original.photoPaths) StoredPhoto(path),
         ]) ||
         workoutType != original.workoutType ||
+        activity != original.activity ||
         CheckIn.cleanNote(note) != original.note;
   }
 
-  /// [photoProblem] is a function so that passing `() => null` can clear it,
-  /// which a plain nullable parameter couldn't tell apart from leaving it
-  /// out.
+  /// [activity] and [photoProblem] are functions so that passing
+  /// `() => null` can clear them, which a plain nullable parameter couldn't
+  /// tell apart from leaving it out.
   CheckInState copyWith({
     CheckIn? original,
     List<CheckInPhoto>? photos,
     WorkoutType? workoutType,
+    ValueGetter<OtherActivity?>? activity,
     String? note,
     CheckInStatus? status,
     ValueGetter<PhotoProblem?>? photoProblem,
@@ -82,6 +90,7 @@ class CheckInState extends Equatable {
       original: original ?? this.original,
       photos: photos ?? this.photos,
       workoutType: workoutType ?? this.workoutType,
+      activity: activity == null ? this.activity : activity(),
       note: note ?? this.note,
       status: status ?? this.status,
       photoProblem: photoProblem == null ? this.photoProblem : photoProblem(),
@@ -95,6 +104,7 @@ class CheckInState extends Equatable {
     original,
     photos,
     workoutType,
+    activity,
     note,
     status,
     photoProblem,

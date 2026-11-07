@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../app/theme/app_theme.dart';
 import '../../domain/entities/workout_type.dart';
 import '../workout_type_labels.dart';
+import 'pill_button.dart';
 
 /// One-tap additions to the note, chosen for [workoutType].
 ///
@@ -49,64 +50,15 @@ class NoteSuggestions extends StatelessWidget {
                     spacing: AppSpacing.sm,
                     children: [
                       for (final suggestion in suggestions)
-                        _SuggestionPill(
+                        PillButton(
                           label: suggestion,
+                          semanticLabel: 'Add $suggestion to the note',
                           onTap: () => onSelected(suggestion),
                         ),
                     ],
                   ),
                 ),
               ),
-      ),
-    );
-  }
-}
-
-class _SuggestionPill extends StatelessWidget {
-  const _SuggestionPill({required this.label, required this.onTap});
-
-  final String label;
-  final VoidCallback onTap;
-
-  /// Apple's minimum tap target. The pill drawn inside it is smaller.
-  static const double _minTapHeight = 44;
-
-  @override
-  Widget build(BuildContext context) {
-    return Semantics(
-      button: true,
-      label: 'Add $label to the note',
-      // Excluding the children also drops their tap action, so the node
-      // declares it again, to stay usable with VoiceOver.
-      onTap: onTap,
-      excludeSemantics: true,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: onTap,
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(minHeight: _minTapHeight),
-          child: Center(
-            widthFactor: 1,
-            child: DecoratedBox(
-              decoration: ShapeDecoration(
-                color: context.colors.bgSecondary,
-                shape: const StadiumBorder(),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.md,
-                  vertical: AppSpacing.sm,
-                ),
-                child: Text(
-                  label,
-                  style: context.textStyles.footnote.copyWith(
-                    color: context.colors.textBody,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
       ),
     );
   }

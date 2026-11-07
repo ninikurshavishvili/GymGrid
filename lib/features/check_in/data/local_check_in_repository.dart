@@ -84,6 +84,7 @@ class LocalCheckInRepository implements CheckInRepository {
                 day: checkIn.date,
                 photoPaths: photoPaths,
                 workoutType: checkIn.workoutType,
+                activity: Value(checkIn.activity),
                 note: Value(checkIn.note),
                 createdAt: checkIn.createdAt,
               ),
@@ -140,6 +141,7 @@ class LocalCheckInRepository implements CheckInRepository {
               CheckInsCompanion(
                 photoPaths: Value(photoPaths),
                 workoutType: Value(edit.workoutType),
+                activity: Value(edit.activity),
                 note: Value(edit.note),
               ),
             );
@@ -232,6 +234,7 @@ class LocalCheckInRepository implements CheckInRepository {
     date: row.day,
     photoPaths: row.photoPaths,
     workoutType: row.workoutType,
+    activity: row.activity,
     note: row.note,
     createdAt: row.createdAt,
   );

@@ -3,6 +3,7 @@ import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gym_grid/core/date/calendar_day.dart';
 import 'package:gym_grid/features/check_in/data/database/app_database.dart';
+import 'package:gym_grid/features/check_in/domain/entities/other_activity.dart';
 import 'package:gym_grid/features/check_in/domain/entities/workout_type.dart';
 
 void main() {
@@ -74,6 +75,26 @@ void main() {
     },
   );
 
+  test('stores an activity as fixed text and reads it back', () async {
+    await db
+        .into(db.checkIns)
+        .insert(
+          row().copyWith(
+            workoutType: const Value(WorkoutType.other),
+            activity: const Value(OtherActivity.groupClass),
+          ),
+        );
+
+    final raw = await db
+        .customSelect('SELECT activity FROM check_ins')
+        .getSingle();
+    expect(raw.read<String>('activity'), 'class');
+    expect(
+      (await db.select(db.checkIns).getSingle()).activity,
+      OtherActivity.groupClass,
+    );
+  });
+
   test('rejects a second check-in for the same day', () async {
     await db.into(db.checkIns).insert(row(id: 'a'));
 
@@ -143,7 +164,7 @@ void main() {
       );
     });
 
-    test('removes the old column', () async {
+    test('removes the old column and adds the ones since, empty', () async {
       final columns = await upgraded
           .customSelect('PRAGMA table_info(check_ins)')
           .get();
@@ -155,10 +176,58 @@ void main() {
           'day',
           'photo_paths',
           'workout_type',
+          'activity',
           'note',
           'created_at',
         ]),
       );
+      final rows = await upgraded.select(upgraded.checkIns).get();
+      expect(rows.map((row) => row.activity), [null, null]);
+    });
+  });
+
+  group('upgrading from version 2, which had no activity', () {
+    late AppDatabase upgraded;
+
+    setUp(() {
+      upgraded = AppDatabase(
+        NativeDatabase.memory(
+          setup: (raw) {
+            raw
+              ..execute(
+                'CREATE TABLE "check_ins" ("id" TEXT NOT NULL, '
+                '"day" TEXT NOT NULL UNIQUE, "photo_paths" TEXT NOT NULL, '
+                '"workout_type" TEXT NOT NULL, "note" TEXT NULL, '
+                '"created_at" TEXT NOT NULL, PRIMARY KEY ("id"));',
+              )
+              ..execute(
+                "INSERT INTO check_ins VALUES ('a', '2026-11-06', "
+                '\'["photos/a.jpg","photos/a-2.jpg"]\', \'other\', '
+                "'Sport, Walk, Class', '2026-11-06T14:19:00.000000 +04:00')",
+              )
+              ..execute('PRAGMA user_version = 2');
+          },
+        ),
+      );
+    });
+
+    tearDown(() => upgraded.close());
+
+    test('keeps every check-in as it was, with no activity', () async {
+      final row = await upgraded.select(upgraded.checkIns).getSingle();
+
+      expect(row.photoPaths, ['photos/a.jpg', 'photos/a-2.jpg']);
+      expect(row.workoutType, WorkoutType.other);
+      expect(row.note, 'Sport, Walk, Class');
+      expect(row.activity, isNull);
+    });
+
+    test('can then store an activity', () async {
+      await (upgraded.update(upgraded.checkIns)..where((t) => t.id.equals('a')))
+          .write(const CheckInsCompanion(activity: Value(OtherActivity.sport)));
+
+      final row = await upgraded.select(upgraded.checkIns).getSingle();
+      expect(row.activity, OtherActivity.sport);
     });
   });
 }

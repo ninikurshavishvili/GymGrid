@@ -9,12 +9,14 @@ import 'package:gym_grid/core/date/calendar_day.dart';
 import 'package:gym_grid/core/errors/failure.dart';
 import 'package:gym_grid/features/check_in/domain/entities/check_in.dart';
 import 'package:gym_grid/features/check_in/domain/entities/check_in_photo.dart';
+import 'package:gym_grid/features/check_in/domain/entities/other_activity.dart';
 import 'package:gym_grid/features/check_in/domain/entities/workout_type.dart';
 import 'package:gym_grid/features/check_in/domain/repositories/photo_locator.dart';
 import 'package:gym_grid/features/check_in/domain/usecases/delete_check_in.dart';
 import 'package:gym_grid/features/check_in/domain/usecases/update_check_in.dart';
 import 'package:gym_grid/features/check_in/domain/usecases/watch_check_in.dart';
 import 'package:gym_grid/features/check_in/presentation/photo_picker.dart';
+import 'package:gym_grid/features/check_in/presentation/workout_type_labels.dart';
 import 'package:gym_grid/features/progress/presentation/day_detail_cubit.dart';
 import 'package:gym_grid/features/progress/presentation/day_detail_screen.dart';
 import 'package:gym_grid/features/progress/presentation/widgets/photo_pager.dart';
@@ -52,13 +54,16 @@ void main() {
 
   CheckIn checkInWith({
     List<String> photoPaths = const ['photos/1.jpg'],
+    WorkoutType workoutType = WorkoutType.strength,
+    OtherActivity? activity,
     String? note = 'Deadlift PR',
   }) {
     return CheckIn(
       id: '1',
       date: day,
       photoPaths: photoPaths,
-      workoutType: WorkoutType.strength,
+      workoutType: workoutType,
+      activity: activity,
       note: note,
       createdAt: DateTime(2026, 11, 6, 7, 42),
     );
@@ -66,6 +71,7 @@ void main() {
 
   setUpAll(() {
     registerFallbackValue(WorkoutType.other);
+    registerFallbackValue(OtherActivity.sport);
     registerFallbackValue(<CheckInPhoto>[]);
   });
 
@@ -138,6 +144,31 @@ void main() {
       expect(find.text('7:42 AM'), findsOneWidget);
       expect(find.text('Deadlift PR'), findsOneWidget);
       expect(find.byType(PhotoPager), findsOneWidget);
+    });
+
+    testWidgets("names an Other workout by its activity, with the activity's "
+        'icon', (tester) async {
+      await pumpDay(
+        tester,
+        checkInWith(
+          workoutType: WorkoutType.other,
+          activity: OtherActivity.sport,
+        ),
+      );
+
+      expect(find.text('Sport'), findsOneWidget);
+      expect(find.byIcon(OtherActivity.sport.icon), findsOneWidget);
+      expect(find.text('Other'), findsNothing);
+    });
+
+    testWidgets('calls an Other workout without an activity "Workout"', (
+      tester,
+    ) async {
+      await pumpDay(tester, checkInWith(workoutType: WorkoutType.other));
+
+      expect(find.text('Workout'), findsOneWidget);
+      expect(find.text('Other'), findsNothing);
+      expect(find.byIcon(WorkoutType.other.icon), findsNothing);
     });
 
     testWidgets('leaves out a missing note', (tester) async {
@@ -220,6 +251,7 @@ void main() {
           id: any(named: 'id'),
           photos: any(named: 'photos'),
           workoutType: any(named: 'workoutType'),
+          activity: any(named: 'activity'),
           note: any(named: 'note'),
         ),
       ).thenAnswer((_) async => checkInWith());
@@ -235,6 +267,7 @@ void main() {
             PickedPhoto('/tmp/new.jpg'),
           ],
           workoutType: WorkoutType.strength,
+          activity: null,
           note: 'Deadlift PR',
         ),
       ).called(1);
@@ -261,6 +294,7 @@ void main() {
           id: any(named: 'id'),
           photos: any(named: 'photos'),
           workoutType: any(named: 'workoutType'),
+          activity: any(named: 'activity'),
           note: any(named: 'note'),
         ),
       ).thenAnswer((_) async => throw const StorageFailure());

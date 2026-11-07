@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:drift/drift.dart';
 
 import '../../../../core/date/calendar_day.dart';
+import '../../domain/entities/other_activity.dart';
 import '../../domain/entities/workout_type.dart';
 
 /// Stores a [CalendarDay] as `yyyy-MM-dd` text, which also sorts by date.
@@ -59,5 +60,26 @@ class WorkoutTypeConverter extends TypeConverter<WorkoutType, String> {
     WorkoutType.cardio => 'cardio',
     WorkoutType.mobility => 'mobility',
     WorkoutType.other => 'other',
+  };
+}
+
+/// Stores an [OtherActivity] as fixed text, for the same reason as
+/// [WorkoutTypeConverter].
+class OtherActivityConverter extends TypeConverter<OtherActivity, String> {
+  const OtherActivityConverter();
+
+  @override
+  OtherActivity fromSql(String fromDb) => switch (fromDb) {
+    'class' => OtherActivity.groupClass,
+    'sport' => OtherActivity.sport,
+    'walk' => OtherActivity.walk,
+    _ => throw FormatException('Unknown activity', fromDb),
+  };
+
+  @override
+  String toSql(OtherActivity value) => switch (value) {
+    OtherActivity.groupClass => 'class',
+    OtherActivity.sport => 'sport',
+    OtherActivity.walk => 'walk',
   };
 }

@@ -4,6 +4,7 @@ import 'package:gym_grid/core/date/clock.dart';
 import 'package:gym_grid/core/errors/failure.dart';
 import 'package:gym_grid/features/check_in/domain/entities/check_in.dart';
 import 'package:gym_grid/features/check_in/domain/entities/new_check_in.dart';
+import 'package:gym_grid/features/check_in/domain/entities/other_activity.dart';
 import 'package:gym_grid/features/check_in/domain/entities/workout_type.dart';
 import 'package:gym_grid/features/check_in/domain/repositories/check_in_repository.dart';
 import 'package:gym_grid/features/check_in/domain/usecases/save_check_in.dart';
@@ -136,5 +137,27 @@ void main() {
       ),
       throwsA(isA<StorageFailure>()),
     );
+  });
+
+  group('the activity', () {
+    test('is kept for an Other workout', () async {
+      await saveCheckInAt(DateTime(2026, 10, 5, 7, 42))(
+        sourcePhotoPaths: const ['/tmp/camera.jpg'],
+        workoutType: WorkoutType.other,
+        activity: OtherActivity.sport,
+      );
+
+      expect(savedCheckIn().activity, OtherActivity.sport);
+    });
+
+    test('is dropped for any other workout type', () async {
+      await saveCheckInAt(DateTime(2026, 10, 5, 7, 42))(
+        sourcePhotoPaths: const ['/tmp/camera.jpg'],
+        workoutType: WorkoutType.cardio,
+        activity: OtherActivity.walk,
+      );
+
+      expect(savedCheckIn().activity, isNull);
+    });
   });
 }

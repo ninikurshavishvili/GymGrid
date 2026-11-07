@@ -2,7 +2,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../core/date/calendar_day.dart';
 import '../../../core/errors/failure.dart';
+import '../domain/entities/check_in.dart';
 import '../domain/entities/check_in_photo.dart';
+import '../domain/entities/other_activity.dart';
 import '../domain/entities/workout_type.dart';
 import '../domain/usecases/get_check_in.dart';
 import '../domain/usecases/save_check_in.dart';
@@ -58,6 +60,7 @@ class CheckInCubit extends Cubit<CheckInState> {
                   for (final path in checkIn.photoPaths) StoredPhoto(path),
                 ],
                 workoutType: checkIn.workoutType,
+                activity: () => checkIn.activity,
                 note: checkIn.note ?? '',
                 status: CheckInStatus.editing,
               ),
@@ -115,8 +118,25 @@ class CheckInCubit extends Cubit<CheckInState> {
 
   Future<void> openSettings() => _photoPicker.openSettings();
 
+  /// Choosing a type other than Other drops any activity chosen for Other.
   void selectWorkoutType(WorkoutType workoutType) {
-    emit(state.copyWith(workoutType: workoutType));
+    emit(
+      state.copyWith(
+        workoutType: workoutType,
+        activity: () => CheckIn.activityFor(workoutType, state.activity),
+      ),
+    );
+  }
+
+  /// Chooses what an Other workout was, or clears it if [activity] is
+  /// already chosen. Does nothing for the other types.
+  void toggleActivity(OtherActivity activity) {
+    if (state.workoutType != WorkoutType.other) return;
+    emit(
+      state.copyWith(
+        activity: () => state.activity == activity ? null : activity,
+      ),
+    );
   }
 
   void noteChanged(String note) => emit(state.copyWith(note: note));
@@ -137,6 +157,7 @@ class CheckInCubit extends Cubit<CheckInState> {
               if (photo case PickedPhoto(:final sourcePath)) sourcePath,
           ],
           workoutType: workoutType,
+          activity: state.activity,
           note: state.note,
         );
       } else {
@@ -144,6 +165,7 @@ class CheckInCubit extends Cubit<CheckInState> {
           id: original.id,
           photos: state.photos,
           workoutType: workoutType,
+          activity: state.activity,
           note: state.note,
         );
       }

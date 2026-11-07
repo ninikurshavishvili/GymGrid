@@ -14,6 +14,7 @@ import 'package:gym_grid/features/check_in/domain/entities/check_in.dart';
 import 'package:gym_grid/features/check_in/domain/entities/check_in_edit.dart';
 import 'package:gym_grid/features/check_in/domain/entities/check_in_photo.dart';
 import 'package:gym_grid/features/check_in/domain/entities/new_check_in.dart';
+import 'package:gym_grid/features/check_in/domain/entities/other_activity.dart';
 import 'package:gym_grid/features/check_in/domain/entities/workout_type.dart';
 import 'package:path/path.dart' as p;
 
@@ -60,6 +61,7 @@ void main() {
     CalendarDay date, {
     String? sourcePhotoPath,
     WorkoutType workoutType = WorkoutType.strength,
+    OtherActivity? activity,
     String? note,
   }) async {
     return repository.save(
@@ -67,6 +69,7 @@ void main() {
         date: date,
         sourcePhotoPaths: [sourcePhotoPath ?? await cameraPhoto()],
         workoutType: workoutType,
+        activity: activity,
         note: note,
         createdAt: date.toLocalDateTime().add(const Duration(hours: 7)),
       ),
@@ -112,6 +115,17 @@ void main() {
       expect(storedPhotos(), {saved.coverPhotoPath});
       expect(await repository.findByDate(oct5), saved);
       expect(File(source).existsSync(), isTrue);
+    });
+
+    test('stores the activity of an Other workout', () async {
+      final saved = await save(
+        oct5,
+        workoutType: WorkoutType.other,
+        activity: OtherActivity.walk,
+      );
+
+      expect(saved.activity, OtherActivity.walk);
+      expect(await repository.findByDate(oct5), saved);
     });
 
     test('stores several photos in order, the first as the cover', () async {
@@ -333,6 +347,31 @@ void main() {
       expect(updated.workoutType, WorkoutType.cardio);
       expect(updated.note, 'Evening');
       expect(await repository.findByDate(oct5), updated);
+    });
+
+    test('sets, changes and clears the activity', () async {
+      final checkIn = await save(oct5, workoutType: WorkoutType.other);
+
+      Future<CheckIn> edit(WorkoutType workoutType, OtherActivity? activity) =>
+          repository.update(
+            CheckInEdit(
+              id: checkIn.id,
+              photos: [StoredPhoto(checkIn.coverPhotoPath)],
+              workoutType: workoutType,
+              activity: activity,
+            ),
+          );
+
+      expect(
+        (await edit(WorkoutType.other, OtherActivity.sport)).activity,
+        OtherActivity.sport,
+      );
+      expect(
+        (await edit(WorkoutType.other, OtherActivity.groupClass)).activity,
+        OtherActivity.groupClass,
+      );
+      expect((await edit(WorkoutType.cardio, null)).activity, isNull);
+      expect((await repository.findByDate(oct5))?.activity, isNull);
     });
 
     test('can remove the note', () async {

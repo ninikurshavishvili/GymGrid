@@ -4,6 +4,7 @@ import 'package:gym_grid/core/errors/failure.dart';
 import 'package:gym_grid/features/check_in/domain/entities/check_in.dart';
 import 'package:gym_grid/features/check_in/domain/entities/check_in_edit.dart';
 import 'package:gym_grid/features/check_in/domain/entities/check_in_photo.dart';
+import 'package:gym_grid/features/check_in/domain/entities/other_activity.dart';
 import 'package:gym_grid/features/check_in/domain/entities/workout_type.dart';
 import 'package:gym_grid/features/check_in/domain/repositories/check_in_repository.dart';
 import 'package:gym_grid/features/check_in/domain/usecases/update_check_in.dart';
@@ -41,6 +42,7 @@ void main() {
       id: '1',
       photos: photos,
       workoutType: WorkoutType.cardio,
+      activity: null,
       note: 'Intervals',
     );
 
@@ -62,12 +64,14 @@ void main() {
       id: '1',
       photos: photos,
       workoutType: WorkoutType.cardio,
+      activity: null,
       note: '  Intervals\n',
     );
     await updateCheckIn(
       id: '1',
       photos: photos,
       workoutType: WorkoutType.cardio,
+      activity: null,
       note: '   ',
     );
 
@@ -84,8 +88,39 @@ void main() {
     ).thenAnswer((_) async => throw const StorageFailure());
 
     await expectLater(
-      updateCheckIn(id: '1', photos: photos, workoutType: WorkoutType.cardio),
+      updateCheckIn(
+        id: '1',
+        photos: photos,
+        workoutType: WorkoutType.cardio,
+        activity: null,
+      ),
       throwsA(isA<StorageFailure>()),
     );
+  });
+
+  CheckInEdit sentEdit() =>
+      verify(() => repository.update(captureAny())).captured.single
+          as CheckInEdit;
+
+  test('keeps the activity of an Other workout', () async {
+    await updateCheckIn(
+      id: '1',
+      photos: photos,
+      workoutType: WorkoutType.other,
+      activity: OtherActivity.groupClass,
+    );
+
+    expect(sentEdit().activity, OtherActivity.groupClass);
+  });
+
+  test('drops the activity of any other workout type', () async {
+    await updateCheckIn(
+      id: '1',
+      photos: photos,
+      workoutType: WorkoutType.mobility,
+      activity: OtherActivity.groupClass,
+    );
+
+    expect(sentEdit().activity, isNull);
   });
 }

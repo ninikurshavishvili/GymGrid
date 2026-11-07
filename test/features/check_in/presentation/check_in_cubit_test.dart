@@ -6,6 +6,7 @@ import 'package:gym_grid/core/date/calendar_day.dart';
 import 'package:gym_grid/core/errors/failure.dart';
 import 'package:gym_grid/features/check_in/domain/entities/check_in.dart';
 import 'package:gym_grid/features/check_in/domain/entities/check_in_photo.dart';
+import 'package:gym_grid/features/check_in/domain/entities/other_activity.dart';
 import 'package:gym_grid/features/check_in/domain/entities/workout_type.dart';
 import 'package:gym_grid/features/check_in/domain/usecases/get_check_in.dart';
 import 'package:gym_grid/features/check_in/domain/usecases/save_check_in.dart';
@@ -54,6 +55,7 @@ void main() {
 
   setUpAll(() {
     registerFallbackValue(WorkoutType.other);
+    registerFallbackValue(OtherActivity.sport);
     registerFallbackValue(<String>[]);
     registerFallbackValue(<CheckInPhoto>[]);
   });
@@ -70,6 +72,7 @@ void main() {
       () => saveCheckIn(
         sourcePhotoPaths: any(named: 'sourcePhotoPaths'),
         workoutType: any(named: 'workoutType'),
+        activity: any(named: 'activity'),
         note: any(named: 'note'),
       ),
     ).thenAnswer((_) => answer());
@@ -81,6 +84,7 @@ void main() {
         id: any(named: 'id'),
         photos: any(named: 'photos'),
         workoutType: any(named: 'workoutType'),
+        activity: any(named: 'activity'),
         note: any(named: 'note'),
       ),
     ).thenAnswer((_) => answer());
@@ -136,6 +140,17 @@ void main() {
       expect(const CheckInState(photos: [picked]).hasUnsavedChanges, isTrue);
     });
 
+    test("for a new check-in, an Other workout's activity alone is not "
+        'unsaved work', () {
+      expect(
+        const CheckInState(
+          workoutType: WorkoutType.other,
+          activity: OtherActivity.walk,
+        ).hasUnsavedChanges,
+        isFalse,
+      );
+    });
+
     test('an edit is unsaved only once something differs', () {
       expect(loaded.hasUnsavedChanges, isFalse);
       expect(loaded.canSave, isFalse);
@@ -144,6 +159,10 @@ void main() {
       for (final changed in [
         loaded.copyWith(note: 'Hills'),
         loaded.copyWith(workoutType: WorkoutType.other),
+        loaded.copyWith(
+          workoutType: WorkoutType.other,
+          activity: () => OtherActivity.walk,
+        ),
         loaded.copyWith(photos: const [StoredPhoto('photos/1.jpg')]),
         loaded.copyWith(photos: [...loaded.photos, picked]),
       ]) {
@@ -174,6 +193,27 @@ void main() {
         return cubit.load();
       },
       expect: () => [loaded],
+    );
+
+    blocTest<CheckInCubit, CheckInState>(
+      "an edit fills in an Other workout's activity",
+      setUp: () => when(() => getCheckIn(day)).thenAnswer(
+        (_) async => CheckIn(
+          id: '1',
+          date: day,
+          photoPaths: const ['photos/1.jpg'],
+          workoutType: WorkoutType.other,
+          activity: OtherActivity.groupClass,
+          createdAt: DateTime(2026, 11, 6, 7, 42),
+        ),
+      ),
+      build: () => buildCubit(editingDay: day),
+      act: (cubit) => cubit.load(),
+      verify: (cubit) {
+        expect(cubit.state.workoutType, WorkoutType.other);
+        expect(cubit.state.activity, OtherActivity.groupClass);
+        expect(cubit.state.hasUnsavedChanges, isFalse);
+      },
     );
 
     blocTest<CheckInCubit, CheckInState>(
@@ -358,6 +398,64 @@ void main() {
     );
 
     blocTest<CheckInCubit, CheckInState>(
+      'chooses an activity for an Other workout, and tapping it again '
+      'clears it',
+      build: buildCubit,
+      seed: () => const CheckInState(workoutType: WorkoutType.other),
+      act: (cubit) => cubit
+        ..toggleActivity(OtherActivity.sport)
+        ..toggleActivity(OtherActivity.walk)
+        ..toggleActivity(OtherActivity.walk),
+      expect: () => [
+        const CheckInState(
+          workoutType: WorkoutType.other,
+          activity: OtherActivity.sport,
+        ),
+        const CheckInState(
+          workoutType: WorkoutType.other,
+          activity: OtherActivity.walk,
+        ),
+        const CheckInState(workoutType: WorkoutType.other),
+      ],
+    );
+
+    blocTest<CheckInCubit, CheckInState>(
+      'ignores an activity for any other workout type',
+      build: buildCubit,
+      seed: () => const CheckInState(workoutType: WorkoutType.cardio),
+      act: (cubit) => cubit.toggleActivity(OtherActivity.sport),
+      expect: () => <CheckInState>[],
+    );
+
+    blocTest<CheckInCubit, CheckInState>(
+      'switching away from Other drops its activity, and switching back '
+      'does not bring it back',
+      build: buildCubit,
+      seed: () => const CheckInState(
+        workoutType: WorkoutType.other,
+        activity: OtherActivity.sport,
+      ),
+      act: (cubit) => cubit
+        ..selectWorkoutType(WorkoutType.cardio)
+        ..selectWorkoutType(WorkoutType.other),
+      expect: () => [
+        const CheckInState(workoutType: WorkoutType.cardio),
+        const CheckInState(workoutType: WorkoutType.other),
+      ],
+    );
+
+    blocTest<CheckInCubit, CheckInState>(
+      'choosing Other again keeps its activity',
+      build: buildCubit,
+      seed: () => const CheckInState(
+        workoutType: WorkoutType.other,
+        activity: OtherActivity.sport,
+      ),
+      act: (cubit) => cubit.selectWorkoutType(WorkoutType.other),
+      expect: () => <CheckInState>[],
+    );
+
+    blocTest<CheckInCubit, CheckInState>(
       'keeps the note as it is typed',
       build: buildCubit,
       act: (cubit) => cubit.noteChanged('Leg day'),
@@ -414,11 +512,52 @@ void main() {
             id: '1',
             photos: const [StoredPhoto('photos/2.jpg'), picked],
             workoutType: WorkoutType.mobility,
+            activity: null,
             note: 'Hips',
           ),
         ).called(1);
         verifyZeroInteractions(saveCheckIn);
       },
+    );
+
+    blocTest<CheckInCubit, CheckInState>(
+      "saves an Other workout's activity",
+      setUp: () => stubSave(() async => stored),
+      build: buildCubit,
+      seed: () => const CheckInState(
+        photos: [picked],
+        workoutType: WorkoutType.other,
+        activity: OtherActivity.walk,
+      ),
+      act: (cubit) => cubit.save(),
+      verify: (_) => verify(
+        () => saveCheckIn(
+          sourcePhotoPaths: ['/tmp/camera.jpg'],
+          workoutType: WorkoutType.other,
+          activity: OtherActivity.walk,
+          note: '',
+        ),
+      ).called(1),
+    );
+
+    blocTest<CheckInCubit, CheckInState>(
+      "updates an edited check-in's activity",
+      setUp: () => stubUpdate(() async => stored),
+      build: () => buildCubit(editingDay: day),
+      seed: () => loaded.copyWith(
+        workoutType: WorkoutType.other,
+        activity: () => OtherActivity.groupClass,
+      ),
+      act: (cubit) => cubit.save(),
+      verify: (_) => verify(
+        () => updateCheckIn(
+          id: '1',
+          photos: loaded.photos,
+          workoutType: WorkoutType.other,
+          activity: OtherActivity.groupClass,
+          note: 'Intervals',
+        ),
+      ).called(1),
     );
 
     blocTest<CheckInCubit, CheckInState>(

@@ -2,6 +2,7 @@ import '../../../../core/errors/failure.dart';
 import '../entities/check_in.dart';
 import '../entities/check_in_edit.dart';
 import '../entities/check_in_photo.dart';
+import '../entities/other_activity.dart';
 import '../entities/workout_type.dart';
 import '../repositories/check_in_repository.dart';
 
@@ -12,14 +13,18 @@ class UpdateCheckIn {
 
   final CheckInRepository _repository;
 
-  /// Gives the check-in with [id] these [photos], [workoutType] and [note].
+  /// Gives the check-in with [id] these [photos], [workoutType], [activity]
+  /// and [note].
   ///
-  /// A blank [note] is stored as no note. Throws a [Failure] if the change
+  /// [activity] is kept only for an Other workout, and a blank [note] is
+  /// stored as no note. [activity] is required, though it can be null, so a
+  /// caller changing something else can't clear it by leaving it out. Throws a [Failure] if the change
   /// can't be stored.
   Future<CheckIn> call({
     required String id,
     required List<CheckInPhoto> photos,
     required WorkoutType workoutType,
+    required OtherActivity? activity,
     String? note,
   }) {
     return _repository.update(
@@ -27,6 +32,7 @@ class UpdateCheckIn {
         id: id,
         photos: photos,
         workoutType: workoutType,
+        activity: CheckIn.activityFor(workoutType, activity),
         note: CheckIn.cleanNote(note),
       ),
     );
