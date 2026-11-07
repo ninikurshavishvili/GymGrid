@@ -41,12 +41,12 @@ class NoteSuggestions extends StatelessWidget {
             ? const SizedBox(width: double.infinity)
             : Padding(
                 key: ValueKey(workoutType),
-                padding: const EdgeInsets.only(bottom: AppSpacing.md),
+                // Less than the usual gap: each pill's tap area adds to it.
+                padding: const EdgeInsets.only(bottom: AppSpacing.xs),
                 child: SizedBox(
                   width: double.infinity,
                   child: Wrap(
                     spacing: AppSpacing.sm,
-                    runSpacing: AppSpacing.sm,
                     children: [
                       for (final suggestion in suggestions)
                         _SuggestionPill(
@@ -68,6 +68,9 @@ class _SuggestionPill extends StatelessWidget {
   final String label;
   final VoidCallback onTap;
 
+  /// Apple's minimum tap target. The pill drawn inside it is smaller.
+  static const double _minTapHeight = 44;
+
   @override
   Widget build(BuildContext context) {
     return Semantics(
@@ -77,21 +80,29 @@ class _SuggestionPill extends StatelessWidget {
       // declares it again, to stay usable with VoiceOver.
       onTap: onTap,
       excludeSemantics: true,
-      child: Material(
-        color: context.colors.bgSecondary,
-        shape: const StadiumBorder(),
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.md,
-              vertical: AppSpacing.sm,
-            ),
-            child: Text(
-              label,
-              style: context.textStyles.footnote.copyWith(
-                color: context.colors.textBody,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: _minTapHeight),
+          child: Center(
+            widthFactor: 1,
+            child: DecoratedBox(
+              decoration: ShapeDecoration(
+                color: context.colors.bgSecondary,
+                shape: const StadiumBorder(),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.md,
+                  vertical: AppSpacing.sm,
+                ),
+                child: Text(
+                  label,
+                  style: context.textStyles.footnote.copyWith(
+                    color: context.colors.textBody,
+                  ),
+                ),
               ),
             ),
           ),

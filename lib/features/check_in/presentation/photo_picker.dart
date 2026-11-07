@@ -47,7 +47,14 @@ class PhotoPicker {
 
   /// Opens this app's page in the Settings app, where camera access can be
   /// turned back on.
-  Future<void> openSettings() => launchUrl(Uri.parse('app-settings:'));
+  Future<void> openSettings() async {
+    try {
+      await launchUrl(Uri.parse('app-settings:'));
+    } on PlatformException {
+      // The message on screen already says where the setting is, so failing
+      // to jump there isn't worth a second error.
+    }
+  }
 
   Future<String?> _pick(ImageSource source) async {
     try {

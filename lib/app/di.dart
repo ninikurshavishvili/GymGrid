@@ -30,6 +30,9 @@ final GetIt getIt = GetIt.instance;
 /// Opens the app's storage and registers all dependencies. Called once from
 /// `main` before `runApp`.
 Future<void> configureDependencies() async {
+  // Read first, so a failure here leaves no database behind to clean up.
+  final documentsDirectory = await getApplicationDocumentsDirectory();
+
   await registerDependencies(
     database: AppDatabase(
       driftDatabase(
@@ -42,7 +45,7 @@ Future<void> configureDependencies() async {
         ),
       ),
     ),
-    documentsDirectory: await getApplicationDocumentsDirectory(),
+    documentsDirectory: documentsDirectory,
   );
 }
 

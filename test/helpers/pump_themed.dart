@@ -3,6 +3,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gym_grid/app/theme/app_theme.dart';
 
+/// A typical iPhone screen, in points.
+const phoneScreen = Size(390, 844);
+
+/// The smallest screen the app supports: iPhone SE.
+const smallestPhoneScreen = Size(375, 667);
+
 /// Pumps [child] inside the app theme on a 390x844 phone screen.
 ///
 /// [textScale] simulates the system text size (Dynamic Type on iOS). Any
@@ -38,8 +44,7 @@ Future<void> pumpThemed(
   );
 }
 
-/// Pumps whole screens through [router], on the same phone-sized view as
-/// [pumpThemed].
+/// Pumps whole screens through [router], on [screen].
 ///
 /// For screens with their own `Scaffold`, which can't sit inside the scroll
 /// view [pumpThemed] provides, and so that taps can navigate.
@@ -47,9 +52,10 @@ Future<void> pumpScreen(
   WidgetTester tester,
   GoRouter router, {
   double textScale = 1,
+  Size screen = phoneScreen,
 }) async {
   tester.view
-    ..physicalSize = const Size(1170, 2532)
+    ..physicalSize = screen * 3
     ..devicePixelRatio = 3;
   addTearDown(tester.view.reset);
 

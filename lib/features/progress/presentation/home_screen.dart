@@ -28,10 +28,32 @@ import 'widgets/year_activity_card.dart';
 /// collapses on scroll, and a pinned action that's only there while there's
 /// something to do. Once the user has checked in the button goes away, and
 /// the today row carries the state on its own.
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({required this.photoLocator, super.key});
 
   final PhotoLocator photoLocator;
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  /// Flutter's counterpart of observing `UIApplication.didBecomeActive`.
+  late final AppLifecycleListener _lifecycle;
+
+  @override
+  void initState() {
+    super.initState();
+    _lifecycle = AppLifecycleListener(
+      onResume: () => context.read<HomeCubit>().appResumed(),
+    );
+  }
+
+  @override
+  void dispose() {
+    _lifecycle.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -56,7 +78,7 @@ class HomeScreen extends StatelessWidget {
                       ),
                       HomeLoaded(:final progress) => _Content(
                         progress: progress,
-                        photoLocator: photoLocator,
+                        photoLocator: widget.photoLocator,
                         hasBottomBar: needsCheckIn,
                       ),
                       HomeFailure() => const SliverFillRemaining(

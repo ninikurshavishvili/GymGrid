@@ -106,6 +106,7 @@ void main() {
     WidgetTester tester, {
     CalendarDay? editingDay,
     double textScale = 1,
+    Size screen = phoneScreen,
   }) async {
     tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
       SystemChannels.platform,
@@ -152,7 +153,7 @@ void main() {
     );
     addTearDown(router.dispose);
 
-    await pumpScreen(tester, router, textScale: textScale);
+    await pumpScreen(tester, router, textScale: textScale, screen: screen);
     unawaited(router.push('/form'));
     await tester.pumpAndSettle();
   }
@@ -831,6 +832,99 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(tester.takeException(), isNull);
+    });
+  });
+
+  group('accessibility', () {
+    Future<void> expectLabelsAndTargets(WidgetTester tester) async {
+      await expectLater(tester, meetsGuideline(labeledTapTargetGuideline));
+      await expectLater(tester, meetsGuideline(iOSTapTargetGuideline));
+    }
+
+    testWidgets('an empty form has labelled, comfortable controls', (
+      tester,
+    ) async {
+      final semantics = tester.ensureSemantics();
+      await pumpForm(tester);
+
+      await expectLabelsAndTargets(tester);
+      semantics.dispose();
+    });
+
+    testWidgets('a filled-in form does too', (tester) async {
+      final semantics = tester.ensureSemantics();
+      await pumpForm(tester, editingDay: today);
+
+      await expectLabelsAndTargets(tester);
+      semantics.dispose();
+    });
+
+    testWidgets('text has enough contrast', (tester) async {
+      final semantics = tester.ensureSemantics();
+      await pumpForm(tester, editingDay: today);
+
+      await expectLater(tester, meetsGuideline(textContrastGuideline));
+      semantics.dispose();
+    });
+  });
+
+  group('on the smallest iPhone at 3x text size', () {
+    Future<void> expectFits(WidgetTester tester) async {
+      expect(tester.takeException(), isNull);
+
+      await tester.drag(find.byType(ListView).first, const Offset(0, -3000));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+    }
+
+    testWidgets('an empty form fits', (tester) async {
+      await pumpForm(tester, textScale: 3, screen: smallestPhoneScreen);
+
+      await expectFits(tester);
+    });
+
+    testWidgets('a filled-in edit fits', (tester) async {
+      await pumpForm(
+        tester,
+        editingDay: today,
+        textScale: 3,
+        screen: smallestPhoneScreen,
+      );
+
+      await expectFits(tester);
+    });
+
+    testWidgets('it still fits with the keyboard up and an error showing', (
+      tester,
+    ) async {
+      stubUpdate(() async => throw const StorageFailure());
+      await pumpForm(
+        tester,
+        editingDay: today,
+        textScale: 3,
+        screen: smallestPhoneScreen,
+      );
+      await tester.dragUntilVisible(
+        find.text('Mobility'),
+        find.byType(ListView).first,
+        const Offset(0, -200),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Mobility'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Save changes'));
+      await tester.pumpAndSettle();
+
+      // The iPhone SE keyboard, at the view's three pixels per point.
+      tester.view.viewInsets = const FakeViewPadding(bottom: 216.0 * 3);
+      addTearDown(tester.view.resetViewInsets);
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(
+        find.text("Couldn't save your check-in. Try again."),
+        findsOneWidget,
+      );
     });
   });
 }

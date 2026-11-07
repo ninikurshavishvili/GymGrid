@@ -14,4 +14,17 @@ class Clock {
 
   /// The current local calendar day.
   CalendarDay today() => CalendarDay.fromDateTime(now());
+
+  /// How long until the next local midnight.
+  ///
+  /// Built from the date rather than by adding 24 hours, so it's right on a
+  /// day that daylight saving makes 23 or 25 hours long.
+  Duration untilTomorrow() {
+    final current = now();
+    return DateTime(
+      current.year,
+      current.month,
+      current.day + 1,
+    ).difference(current);
+  }
 }
