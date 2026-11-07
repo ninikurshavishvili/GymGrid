@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gym_grid/core/date/calendar_day.dart';
 import 'package:gym_grid/features/check_in/domain/entities/check_in.dart';
+import 'package:gym_grid/features/check_in/domain/entities/other_activity.dart';
 import 'package:gym_grid/features/check_in/domain/entities/workout_type.dart';
 
 CheckIn _checkIn({
@@ -8,6 +9,7 @@ CheckIn _checkIn({
   CalendarDay? date,
   List<String> photoPaths = const ['photos/1.jpg'],
   WorkoutType workoutType = WorkoutType.strength,
+  OtherActivity? activity,
   String? note = 'Leg day',
   DateTime? createdAt,
 }) {
@@ -16,6 +18,7 @@ CheckIn _checkIn({
     date: date ?? CalendarDay(2026, 10, 5),
     photoPaths: photoPaths,
     workoutType: workoutType,
+    activity: activity,
     note: note,
     createdAt: createdAt ?? DateTime(2026, 10, 5, 7, 42),
   );
@@ -41,6 +44,40 @@ void main() {
     for (final MapEntry(key: field, value: variant) in variants.entries) {
       expect(variant, isNot(_checkIn()), reason: field);
     }
+  });
+
+  test('the activity takes part in equality', () {
+    expect(
+      _checkIn(workoutType: WorkoutType.other, activity: OtherActivity.walk),
+      isNot(_checkIn(workoutType: WorkoutType.other)),
+    );
+  });
+
+  test('only an Other workout can have an activity', () {
+    expect(
+      () => _checkIn(activity: OtherActivity.walk),
+      throwsA(isA<AssertionError>()),
+    );
+  });
+
+  group('activityFor', () {
+    test('keeps the activity of an Other workout', () {
+      expect(
+        CheckIn.activityFor(WorkoutType.other, OtherActivity.sport),
+        OtherActivity.sport,
+      );
+    });
+
+    test('drops it for every other type', () {
+      for (final type in WorkoutType.values) {
+        if (type == WorkoutType.other) continue;
+        expect(
+          CheckIn.activityFor(type, OtherActivity.sport),
+          isNull,
+          reason: '$type',
+        );
+      }
+    });
   });
 
   test('the first photo is the cover', () {

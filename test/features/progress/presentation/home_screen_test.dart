@@ -9,6 +9,7 @@ import 'package:gym_grid/core/date/calendar_day.dart';
 import 'package:gym_grid/core/date/clock.dart';
 import 'package:gym_grid/core/errors/failure.dart';
 import 'package:gym_grid/features/check_in/domain/entities/check_in.dart';
+import 'package:gym_grid/features/check_in/domain/entities/other_activity.dart';
 import 'package:gym_grid/features/check_in/domain/entities/workout_type.dart';
 import 'package:gym_grid/features/check_in/domain/repositories/photo_locator.dart';
 import 'package:gym_grid/features/progress/domain/entities/progress.dart';
@@ -46,6 +47,7 @@ void main() {
   CheckIn checkInOn(
     CalendarDay day, {
     WorkoutType workoutType = WorkoutType.strength,
+    OtherActivity? activity,
     String? note,
     String? photoPath,
   }) {
@@ -54,6 +56,7 @@ void main() {
       date: day,
       photoPaths: [photoPath ?? 'photos/$day.jpg'],
       workoutType: workoutType,
+      activity: activity,
       note: note,
       createdAt: day.toLocalDateTime().add(
         const Duration(hours: 7, minutes: 42),
@@ -93,6 +96,10 @@ void main() {
               path: 'day/:date',
               builder: (context, state) =>
                   Text('day ${state.pathParameters['date']}'),
+            ),
+            GoRoute(
+              path: 'history',
+              builder: (context, state) => const Text('history screen'),
             ),
           ],
         ),
@@ -183,6 +190,40 @@ void main() {
       expect(find.text('1 check-in'), findsOneWidget);
     });
 
+    testWidgets("names today's Other workout by its activity", (tester) async {
+      stubProgress(
+        () => Stream.value(
+          progressWith([
+            checkInOn(
+              today,
+              workoutType: WorkoutType.other,
+              activity: OtherActivity.walk,
+            ),
+          ]),
+        ),
+      );
+
+      await pumpHome(tester);
+
+      expect(find.text('Walk'), findsOneWidget);
+      expect(find.text('Other'), findsNothing);
+    });
+
+    testWidgets('calls an Other workout without an activity "Workout"', (
+      tester,
+    ) async {
+      stubProgress(
+        () => Stream.value(
+          progressWith([checkInOn(today, workoutType: WorkoutType.other)]),
+        ),
+      );
+
+      await pumpHome(tester);
+
+      expect(find.text('Workout'), findsOneWidget);
+      expect(find.text('Other'), findsNothing);
+    });
+
     testWidgets('updates by itself when a check-in arrives', (tester) async {
       final progress = StreamController<Progress>();
       addTearDown(progress.close);
@@ -253,6 +294,29 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('day 2026-11-06'), findsOneWidget);
+    });
+
+    testWidgets('All check-ins opens the history', (tester) async {
+      stubProgress(
+        () => Stream.value(progressWith([checkInOn(today.addDays(-1))])),
+      );
+      await pumpHome(tester);
+
+      await tester.ensureVisible(find.text('All check-ins'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('All check-ins'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('history screen'), findsOneWidget);
+    });
+
+    testWidgets('All check-ins is offered only once there is a check-in', (
+      tester,
+    ) async {
+      stubProgress(() => Stream.value(progressWith(const [])));
+      await pumpHome(tester);
+
+      expect(find.text('All check-ins'), findsNothing);
     });
 
     testWidgets('a filled day in the grid opens that day', (tester) async {
@@ -410,6 +474,24 @@ void main() {
       await pumpHome(tester);
 
       await expectLater(tester, meetsGuideline(labeledTapTargetGuideline));
+      semantics.dispose();
+    });
+
+    testWidgets('All check-ins is its own button, apart from the year card', (
+      tester,
+    ) async {
+      final semantics = tester.ensureSemantics();
+      stubProgress(() => Stream.value(progressWith([checkInOn(today)])));
+      await pumpHome(tester);
+
+      expect(
+        tester.getSemantics(find.bySemanticsLabel('All check-ins')),
+        isSemantics(isButton: true, hasTapAction: true),
+      );
+      expect(
+        tester.getSemantics(find.bySemanticsLabel('2026 activity, 1 check-in')),
+        isSemantics(isButton: false, hasTapAction: false),
+      );
       semantics.dispose();
     });
 

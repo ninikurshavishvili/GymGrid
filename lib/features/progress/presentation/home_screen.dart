@@ -166,6 +166,7 @@ class _Content extends StatelessWidget {
               key: ValueKey(today.year),
               progress: progress,
               onDayTap: (day) => _openDay(context, day),
+              onShowAll: () => unawaited(context.push(AppRoutes.history)),
             ),
             const SizedBox(height: AppSpacing.md),
             TodayCard(

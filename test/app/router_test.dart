@@ -16,8 +16,10 @@ import 'package:gym_grid/features/check_in/domain/usecases/update_check_in.dart'
 import 'package:gym_grid/features/check_in/domain/usecases/watch_check_in.dart';
 import 'package:gym_grid/features/check_in/presentation/check_in_screen.dart';
 import 'package:gym_grid/features/check_in/presentation/photo_picker.dart';
+import 'package:gym_grid/features/progress/domain/usecases/watch_history.dart';
 import 'package:gym_grid/features/progress/domain/usecases/watch_progress.dart';
 import 'package:gym_grid/features/progress/presentation/day_detail_screen.dart';
+import 'package:gym_grid/features/progress/presentation/history_screen.dart';
 import 'package:gym_grid/features/progress/presentation/home_screen.dart';
 import 'package:mocktail/mocktail.dart';
 
@@ -41,6 +43,7 @@ void main() {
     getIt
       ..registerSingleton<Clock>(clock)
       ..registerSingleton(WatchProgress(repository: repository, clock: clock))
+      ..registerSingleton(WatchHistory(repository: repository))
       ..registerSingleton(SaveCheckIn(repository: repository, clock: clock))
       ..registerSingleton(UpdateCheckIn(repository: repository))
       ..registerSingleton(DeleteCheckIn(repository: repository))
@@ -77,6 +80,20 @@ void main() {
     await tester.tap(find.text('Cancel'));
     await tester.pumpAndSettle();
     expect(find.byType(CheckInScreen), findsNothing);
+    expect(find.byType(HomeScreen), findsOneWidget);
+  });
+
+  testWidgets('history opens over home and Back returns to it', (tester) async {
+    await pumpApp(tester);
+
+    unawaited(router.push(AppRoutes.history));
+    await tester.pumpAndSettle();
+    expect(find.byType(HistoryScreen), findsOneWidget);
+    expect(find.text('No check-ins yet'), findsOneWidget);
+
+    await tester.tap(find.bySemanticsLabel('Back'));
+    await tester.pumpAndSettle();
+    expect(find.byType(HistoryScreen), findsNothing);
     expect(find.byType(HomeScreen), findsOneWidget);
   });
 

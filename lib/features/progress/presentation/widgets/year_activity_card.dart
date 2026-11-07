@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_theme.dart';
@@ -14,16 +15,19 @@ import '../../domain/entities/year_grid.dart';
 ///
 /// A year has too many columns to fit legibly on a phone, so the grid
 /// scrolls sideways and opens on the current week. Tapping a filled day
-/// calls [onDayTap].
+/// calls [onDayTap], and the row under the grid calls [onShowAll]. The row
+/// is left out until there's a check-in to show.
 class YearActivityCard extends StatelessWidget {
   const YearActivityCard({
     required this.progress,
     required this.onDayTap,
+    required this.onShowAll,
     super.key,
   });
 
   final Progress progress;
   final ValueChanged<CalendarDay> onDayTap;
+  final VoidCallback onShowAll;
 
   @override
   Widget build(BuildContext context) {
@@ -36,9 +40,15 @@ class YearActivityCard extends StatelessWidget {
     final checkInsByDay = {
       for (final checkIn in progress.checkIns) checkIn.date: checkIn,
     };
+    final canShowAll = progress.checkIns.isNotEmpty;
 
     return SurfaceCard(
-      padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
+      // The row under the grid reaches the bottom edge, as the last row of
+      // an iOS grouped list does.
+      padding: EdgeInsets.only(
+        top: AppSpacing.lg,
+        bottom: canShowAll ? 0 : AppSpacing.lg,
+      ),
       child: Semantics(
         container: true,
         label: '$year activity, $countLabel',
@@ -84,7 +94,71 @@ class YearActivityCard extends StatelessWidget {
                 onDayTap: onDayTap,
               ),
             ),
+            if (canShowAll)
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Divider(indent: AppSpacing.lg),
+                  _ShowAllRow(onTap: onShowAll),
+                ],
+              ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Opens every check-in, from this year and earlier ones.
+class _ShowAllRow extends StatelessWidget {
+  const _ShowAllRow({required this.onTap});
+
+  final VoidCallback onTap;
+
+  /// Apple's minimum tap target.
+  static const double _minHeight = 44;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+
+    return Semantics(
+      // Its own node, rather than merged into the card's label.
+      container: true,
+      button: true,
+      label: 'All check-ins',
+      // Excluding the children also drops the InkWell's tap action, so the
+      // node declares it again, to stay usable with VoiceOver.
+      onTap: onTap,
+      excludeSemantics: true,
+      child: InkWell(
+        onTap: onTap,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: _minHeight),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.lg,
+              vertical: AppSpacing.md,
+            ),
+            child: Row(
+              spacing: AppSpacing.sm,
+              children: [
+                Expanded(
+                  child: Text(
+                    'All check-ins',
+                    style: context.textStyles.body.copyWith(
+                      color: colors.actionGreen,
+                    ),
+                  ),
+                ),
+                Icon(
+                  CupertinoIcons.chevron_forward,
+                  size: MediaQuery.textScalerOf(context).scale(14),
+                  color: colors.textMuted,
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -353,7 +427,7 @@ class _Cell extends StatelessWidget {
     return Semantics(
       container: true,
       button: true,
-      label: '$date, checked in, ${checkIn.workoutType.label.toLowerCase()}',
+      label: '$date, checked in, ${checkIn.title.toLowerCase()}',
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: () => onTap(day),

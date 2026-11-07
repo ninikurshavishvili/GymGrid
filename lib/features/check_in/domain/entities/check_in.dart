@@ -1,6 +1,7 @@
 import 'package:equatable/equatable.dart';
 
 import '../../../../core/date/calendar_day.dart';
+import 'other_activity.dart';
 import 'workout_type.dart';
 
 /// A day's gym check-in: its photos, the kind of workout and an optional note.
@@ -13,8 +14,12 @@ class CheckIn extends Equatable {
     required this.photoPaths,
     required this.workoutType,
     required this.createdAt,
+    this.activity,
     this.note,
-  });
+  }) : assert(
+         activity == null || workoutType == WorkoutType.other,
+         'Only an Other workout has an activity',
+       );
 
   /// The longest note allowed, in characters as the user sees them.
   ///
@@ -43,6 +48,10 @@ class CheckIn extends Equatable {
 
   final WorkoutType workoutType;
 
+  /// What an Other workout was, or null if the user didn't say. Always null
+  /// for the other workout types.
+  final OtherActivity? activity;
+
   /// Null when the user left the note empty; never blank.
   final String? note;
 
@@ -51,6 +60,13 @@ class CheckIn extends Equatable {
 
   /// The photo that stands for this check-in in lists.
   String get coverPhotoPath => photoPaths.first;
+
+  /// [activity] if [workoutType] can have one, otherwise null, so switching
+  /// away from Other drops an activity chosen for it.
+  static OtherActivity? activityFor(
+    WorkoutType workoutType,
+    OtherActivity? activity,
+  ) => workoutType == WorkoutType.other ? activity : null;
 
   /// [note] trimmed, or null if that leaves nothing, as stored notes are.
   static String? cleanNote(String? note) {
@@ -64,6 +80,7 @@ class CheckIn extends Equatable {
     date,
     photoPaths,
     workoutType,
+    activity,
     note,
     createdAt,
   ];

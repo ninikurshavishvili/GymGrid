@@ -18,6 +18,7 @@ import '../features/check_in/domain/usecases/save_check_in.dart';
 import '../features/check_in/domain/usecases/update_check_in.dart';
 import '../features/check_in/domain/usecases/watch_check_in.dart';
 import '../features/check_in/presentation/photo_picker.dart';
+import '../features/progress/domain/usecases/watch_history.dart';
 import '../features/progress/domain/usecases/watch_progress.dart';
 
 /// The app's service locator, the composition root for dependencies.
@@ -108,5 +109,8 @@ Future<void> registerDependencies({
     )
     ..registerLazySingleton<WatchProgress>(
       () => WatchProgress(repository: getIt(), clock: getIt()),
+    )
+    ..registerLazySingleton<WatchHistory>(
+      () => WatchHistory(repository: getIt()),
     );
 }

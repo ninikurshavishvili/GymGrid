@@ -37,3 +37,9 @@ extension CheckInTime on CheckIn {
     );
   }
 }
+
+/// The first line of a check-in's note, which is all a list row has room
+/// for. Null when there's no note.
+extension CheckInNotePreview on CheckIn {
+  String? get notePreview => note?.split('\n').first;
+}

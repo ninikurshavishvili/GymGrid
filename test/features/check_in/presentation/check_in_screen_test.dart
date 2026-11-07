@@ -11,6 +11,7 @@ import 'package:gym_grid/core/errors/failure.dart';
 import 'package:gym_grid/core/widgets/primary_button.dart';
 import 'package:gym_grid/features/check_in/domain/entities/check_in.dart';
 import 'package:gym_grid/features/check_in/domain/entities/check_in_photo.dart';
+import 'package:gym_grid/features/check_in/domain/entities/other_activity.dart';
 import 'package:gym_grid/features/check_in/domain/entities/workout_type.dart';
 import 'package:gym_grid/features/check_in/domain/repositories/photo_locator.dart';
 import 'package:gym_grid/features/check_in/domain/usecases/get_check_in.dart';
@@ -59,6 +60,7 @@ void main() {
 
   setUpAll(() {
     registerFallbackValue(WorkoutType.other);
+    registerFallbackValue(OtherActivity.sport);
     registerFallbackValue(today);
     registerFallbackValue(<String>[]);
     registerFallbackValue(<CheckInPhoto>[]);
@@ -84,6 +86,7 @@ void main() {
       () => saveCheckIn(
         sourcePhotoPaths: any(named: 'sourcePhotoPaths'),
         workoutType: any(named: 'workoutType'),
+        activity: any(named: 'activity'),
         note: any(named: 'note'),
       ),
     ).thenAnswer((_) => answer());
@@ -95,6 +98,7 @@ void main() {
         id: any(named: 'id'),
         photos: any(named: 'photos'),
         workoutType: any(named: 'workoutType'),
+        activity: any(named: 'activity'),
         note: any(named: 'note'),
       ),
     ).thenAnswer((_) => answer());
@@ -164,6 +168,15 @@ void main() {
   }
 
   Future<void> chooseWorkout(WidgetTester tester, String label) async {
+    await tester.tap(find.text(label));
+    await tester.pumpAndSettle();
+  }
+
+  /// Scrolls the pill for [label] into view, which is below the fold on a
+  /// phone, and taps it.
+  Future<void> chooseActivity(WidgetTester tester, String label) async {
+    await tester.ensureVisible(find.text(label));
+    await tester.pumpAndSettle();
     await tester.tap(find.text(label));
     await tester.pumpAndSettle();
   }
@@ -366,6 +379,133 @@ void main() {
 
       final field = tester.widget<TextField>(find.byType(TextField));
       expect(field.controller!.text, hasLength(CheckIn.maxNoteLength));
+    });
+  });
+
+  group('Other', () {
+    testWidgets('offers activities instead of note suggestions, and only for '
+        'Other', (tester) async {
+      await pumpForm(tester);
+
+      await chooseWorkout(tester, 'Other');
+      for (final activity in OtherActivity.values) {
+        expect(find.text(activity.label), findsOneWidget);
+      }
+
+      await chooseWorkout(tester, 'Cardio');
+      expect(find.text('Sport'), findsNothing);
+      expect(find.text('Intervals'), findsOneWidget);
+    });
+
+    testWidgets('an activity is a choice, not part of the note', (
+      tester,
+    ) async {
+      final semantics = tester.ensureSemantics();
+      await pumpForm(tester);
+      await chooseWorkout(tester, 'Other');
+
+      await chooseActivity(tester, 'Sport');
+
+      final field = tester.widget<TextField>(find.byType(TextField));
+      expect(field.controller!.text, isEmpty);
+      expect(
+        tester.getSemantics(find.bySemanticsLabel('Sport')),
+        isSemantics(
+          isButton: true,
+          isSelected: true,
+          isInMutuallyExclusiveGroup: true,
+          hasTapAction: true,
+        ),
+      );
+      expect(
+        tester.getSemantics(find.bySemanticsLabel('Walk')),
+        isSemantics(
+          isButton: true,
+          isSelected: false,
+          isInMutuallyExclusiveGroup: true,
+          hasTapAction: true,
+        ),
+      );
+      semantics.dispose();
+    });
+
+    testWidgets('tapping the chosen activity again clears it', (tester) async {
+      final semantics = tester.ensureSemantics();
+      await pumpForm(tester);
+      await chooseWorkout(tester, 'Other');
+
+      await chooseActivity(tester, 'Walk');
+      await chooseActivity(tester, 'Walk');
+
+      expect(
+        tester.getSemantics(find.bySemanticsLabel('Walk')),
+        isSemantics(
+          isButton: true,
+          isSelected: false,
+          isInMutuallyExclusiveGroup: true,
+          hasTapAction: true,
+        ),
+      );
+      semantics.dispose();
+    });
+
+    testWidgets('choosing one gives a light haptic tap', (tester) async {
+      await pumpForm(tester);
+      await chooseWorkout(tester, 'Other');
+      haptics.clear();
+
+      await chooseActivity(tester, 'Class');
+
+      expect(haptics, ['HapticFeedbackType.selectionClick']);
+    });
+
+    testWidgets('saves the chosen activity', (tester) async {
+      stubSave(() async => stored);
+      await pumpForm(tester);
+      await takePhoto(tester);
+      await chooseWorkout(tester, 'Other');
+      await chooseActivity(tester, 'Class');
+
+      await tester.tap(find.text('Save check-in'));
+      await tester.pumpAndSettle();
+
+      verify(
+        () => saveCheckIn(
+          sourcePhotoPaths: ['/no/such/camera.jpg'],
+          workoutType: WorkoutType.other,
+          activity: OtherActivity.groupClass,
+          note: '',
+        ),
+      ).called(1);
+    });
+
+    testWidgets('an edit opens with the stored activity chosen', (
+      tester,
+    ) async {
+      final semantics = tester.ensureSemantics();
+      when(() => getCheckIn(any())).thenAnswer(
+        (_) async => CheckIn(
+          id: '1',
+          date: today,
+          photoPaths: const ['photos/1.jpg'],
+          workoutType: WorkoutType.other,
+          activity: OtherActivity.walk,
+          createdAt: DateTime(2026, 11, 6, 7, 42),
+        ),
+      );
+
+      await pumpForm(tester, editingDay: today);
+
+      expect(
+        tester.getSemantics(find.bySemanticsLabel('Walk')),
+        isSemantics(
+          isButton: true,
+          isSelected: true,
+          isInMutuallyExclusiveGroup: true,
+          hasTapAction: true,
+        ),
+      );
+      semantics.dispose();
     });
   });
 
@@ -619,6 +759,7 @@ void main() {
             StoredPhoto('photos/2.jpg'),
           ],
           workoutType: WorkoutType.cardio,
+          activity: null,
           note: 'Hill sprints',
         ),
       ).called(1);
@@ -866,6 +1007,18 @@ void main() {
       await expectLater(tester, meetsGuideline(textContrastGuideline));
       semantics.dispose();
     });
+
+    testWidgets('activities have labelled, comfortable targets, and a chosen '
+        'one has enough contrast', (tester) async {
+      final semantics = tester.ensureSemantics();
+      await pumpForm(tester);
+      await chooseWorkout(tester, 'Other');
+      await chooseActivity(tester, 'Sport');
+
+      await expectLabelsAndTargets(tester);
+      await expectLater(tester, meetsGuideline(textContrastGuideline));
+      semantics.dispose();
+    });
   });
 
   group('on the smallest iPhone at 3x text size', () {
@@ -890,6 +1043,21 @@ void main() {
         textScale: 3,
         screen: smallestPhoneScreen,
       );
+
+      await expectFits(tester);
+    });
+
+    testWidgets('Other with a chosen activity fits', (tester) async {
+      await pumpForm(tester, textScale: 3, screen: smallestPhoneScreen);
+      // The list builds lazily, so Other doesn't exist until scrolled to.
+      await tester.scrollUntilVisible(
+        find.text('Other'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pumpAndSettle();
+      await chooseWorkout(tester, 'Other');
+      await chooseActivity(tester, 'Sport');
 
       await expectFits(tester);
     });

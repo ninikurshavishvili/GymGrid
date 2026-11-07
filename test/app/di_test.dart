@@ -16,6 +16,7 @@ import 'package:gym_grid/features/check_in/domain/usecases/save_check_in.dart';
 import 'package:gym_grid/features/check_in/domain/usecases/update_check_in.dart';
 import 'package:gym_grid/features/check_in/domain/usecases/watch_check_in.dart';
 import 'package:gym_grid/features/check_in/presentation/photo_picker.dart';
+import 'package:gym_grid/features/progress/domain/usecases/watch_history.dart';
 import 'package:gym_grid/features/progress/domain/usecases/watch_progress.dart';
 import 'package:path/path.dart' as p;
 
@@ -80,6 +81,7 @@ void main() {
     );
 
     expect((await getIt<WatchProgress>()().first).checkIns, [saved]);
+    expect((await getIt<WatchHistory>()().first).single.checkIns, [saved]);
     expect(await getIt<GetCheckIn>()(saved.date), saved);
     expect(await getIt<WatchCheckIn>()(saved.date).first, saved);
 
@@ -87,6 +89,7 @@ void main() {
       id: saved.id,
       photos: [StoredPhoto(saved.coverPhotoPath)],
       workoutType: WorkoutType.cardio,
+      activity: null,
     );
     expect(await getIt<GetCheckIn>()(saved.date), edited);
 

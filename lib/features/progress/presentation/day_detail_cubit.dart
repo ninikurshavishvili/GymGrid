@@ -105,6 +105,7 @@ class DayDetailCubit extends Cubit<DayDetailState> {
             PickedPhoto(path),
           ],
           workoutType: checkIn.workoutType,
+          activity: checkIn.activity,
           note: checkIn.note,
         );
       }

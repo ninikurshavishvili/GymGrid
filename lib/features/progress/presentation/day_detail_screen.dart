@@ -16,6 +16,7 @@ import 'package:go_router/go_router.dart';
 import '../../../app/router.dart';
 import '../../../app/theme/app_theme.dart';
 import '../../../core/date/calendar_day.dart';
+import '../../../core/widgets/navigation_back_button.dart';
 import '../../../core/widgets/surface_card.dart';
 import '../../check_in/domain/repositories/photo_locator.dart';
 import '../../check_in/presentation/check_in_display.dart';
@@ -51,7 +52,7 @@ class DayDetailScreen extends StatelessWidget {
         return Scaffold(
           appBar: CupertinoNavigationBar(
             automaticallyImplyLeading: false,
-            leading: const _BackButton(),
+            leading: const NavigationBackButton(),
             middle: Text(date),
             trailing: state is DayDetailLoaded && !state.isBusy
                 ? CupertinoButton(
@@ -84,33 +85,6 @@ class DayDetailScreen extends StatelessWidget {
           },
         );
       },
-    );
-  }
-}
-
-/// Stands in for Flutter's own Cupertino back button, whose tappable part
-/// has no label and whose label can't be tapped. VoiceOver gets one control
-/// here, named and usable.
-class _BackButton extends StatelessWidget {
-  const _BackButton();
-
-  void _goBack(BuildContext context) {
-    unawaited(Navigator.of(context).maybePop());
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Semantics(
-      container: true,
-      button: true,
-      label: 'Back',
-      onTap: () => _goBack(context),
-      excludeSemantics: true,
-      child: CupertinoButton(
-        padding: EdgeInsets.zero,
-        onPressed: () => _goBack(context),
-        child: Icon(CupertinoIcons.back, color: context.colors.actionGreen),
-      ),
     );
   }
 }
@@ -193,13 +167,13 @@ class _Content extends StatelessWidget {
             spacing: AppSpacing.sm,
             children: [
               Icon(
-                checkIn.workoutType.icon,
+                checkIn.titleIcon,
                 size: MediaQuery.textScalerOf(context).scale(20),
                 color: colors.gridFilled,
               ),
               Expanded(
                 child: Text(
-                  checkIn.workoutType.label,
+                  checkIn.title,
                   style: text.header.copyWith(color: colors.textPrimary),
                 ),
               ),

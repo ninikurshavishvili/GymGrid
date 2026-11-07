@@ -22,6 +22,7 @@ import 'check_in_cubit.dart';
 import 'check_in_display.dart';
 import 'check_in_state.dart';
 import 'widgets/note_suggestions.dart';
+import 'widgets/other_activity_picker.dart';
 import 'widgets/photo_problem_message.dart';
 import 'widgets/photo_source_sheet.dart';
 import 'widgets/photo_strip.dart';
@@ -33,8 +34,8 @@ import 'workout_type_labels.dart';
 ///
 /// Shown as a modal with Cancel at the top and the one action pinned at the
 /// bottom, which stays above the keyboard. The form responds as it's filled
-/// in: the note's prompt and suggestions follow the workout type, and the
-/// button says what's still needed. Screens showing check-ins update by
+/// in: the note's prompt and suggestions follow the workout type, Other asks
+/// what the workout was, and the button says what's still needed. Screens showing check-ins update by
 /// themselves after a save, through the database stream, so this only has
 /// to close.
 class CheckInScreen extends StatefulWidget {
@@ -233,6 +234,11 @@ class _Form extends StatelessWidget {
           onSelected: cubit.selectWorkoutType,
         ),
         const SizedBox(height: AppSpacing.md),
+        OtherActivityPicker(
+          workoutType: state.workoutType,
+          selected: state.activity,
+          onToggled: cubit.toggleActivity,
+        ),
         NoteSuggestions(
           workoutType: state.workoutType,
           note: state.note,

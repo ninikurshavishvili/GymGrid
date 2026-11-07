@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gym_grid/core/date/calendar_day.dart';
 import 'package:gym_grid/features/check_in/data/database/converters.dart';
+import 'package:gym_grid/features/check_in/domain/entities/other_activity.dart';
 import 'package:gym_grid/features/check_in/domain/entities/workout_type.dart';
 
 void main() {
@@ -60,6 +61,29 @@ void main() {
     });
 
     test('rejects unknown text', () {
+      expect(() => converter.fromSql('yoga'), throwsFormatException);
+    });
+  });
+
+  group('OtherActivityConverter', () {
+    const converter = OtherActivityConverter();
+
+    // Stored text, so changing it would need a migration.
+    test('stores each activity as fixed text', () {
+      expect(OtherActivity.values.map(converter.toSql), [
+        'class',
+        'sport',
+        'walk',
+      ]);
+    });
+
+    test('reads back every activity', () {
+      for (final activity in OtherActivity.values) {
+        expect(converter.fromSql(converter.toSql(activity)), activity);
+      }
+    });
+
+    test('rejects text that is not an activity', () {
       expect(() => converter.fromSql('yoga'), throwsFormatException);
     });
   });
