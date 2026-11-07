@@ -4,6 +4,7 @@ import 'package:drift_flutter/drift_flutter.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
 import '../core/date/clock.dart';
@@ -36,6 +37,7 @@ final GetIt getIt = GetIt.instance;
 Future<void> configureDependencies() async {
   // Read first, so a failure here leaves no database behind to clean up.
   final documentsDirectory = await getApplicationDocumentsDirectory();
+  final temporaryDirectory = await getTemporaryDirectory();
   final packageInfo = await PackageInfo.fromPlatform();
 
   await registerDependencies(
@@ -51,13 +53,15 @@ Future<void> configureDependencies() async {
       ),
     ),
     documentsDirectory: documentsDirectory,
+    temporaryDirectory: temporaryDirectory,
     packageInfo: packageInfo,
   );
 }
 
 /// Registers all dependencies around [database], the photos kept in
-/// [documentsDirectory] and the app's [packageInfo], then deletes photos
-/// left over from a save the app didn't finish.
+/// [documentsDirectory], the app's [temporaryDirectory] and its
+/// [packageInfo], then deletes photos left over from a check-in the app
+/// didn't finish.
 ///
 /// Separate from [configureDependencies] so tests can pass an in-memory
 /// database and a temporary folder.
@@ -65,16 +69,23 @@ Future<void> configureDependencies() async {
 Future<void> registerDependencies({
   required AppDatabase database,
   required Directory documentsDirectory,
+  required Directory temporaryDirectory,
   required PackageInfo packageInfo,
 }) async {
   final photoStore = PhotoStore(documentsDirectory);
+  // On iOS the temporary directory is Library/Caches, which isn't backed
+  // up, so photos waiting to be stored never reach a backup.
+  final photoPicker = PhotoPicker(
+    folder: Directory(p.join(temporaryDirectory.path, 'picked_photos')),
+  );
   final repository = LocalCheckInRepository(
     database: database,
     photoStore: photoStore,
   );
 
-  // Nothing can be saving yet, so this can't delete a photo that is about
-  // to be saved.
+  // Nothing can be saving yet, so neither of these can delete a photo that
+  // is about to be saved.
+  await photoPicker.discardAll();
   try {
     await repository.deleteUnreferencedPhotos();
   } on StorageFailure catch (failure, stackTrace) {
@@ -100,7 +111,7 @@ Future<void> registerDependencies({
     ..registerSingleton<PhotoStore>(photoStore)
     ..registerSingleton<PhotoLocator>(photoStore)
     ..registerSingleton<CheckInRepository>(repository)
-    ..registerLazySingleton<PhotoPicker>(PhotoPicker.new)
+    ..registerSingleton<PhotoPicker>(photoPicker)
     ..registerLazySingleton<LinkOpener>(LinkOpener.new)
     ..registerLazySingleton<SaveCheckIn>(
       () => SaveCheckIn(repository: getIt(), clock: getIt()),

@@ -26,10 +26,12 @@ import 'package:path/path.dart' as p;
 void main() {
   late Directory container;
   late Directory documents;
+  late Directory temporary;
 
   setUp(() async {
     container = await Directory.systemTemp.createTemp('di_test_');
     documents = await Directory(p.join(container.path, 'Documents')).create();
+    temporary = await Directory(p.join(container.path, 'tmp')).create();
   });
 
   tearDown(() async {
@@ -48,6 +50,7 @@ void main() {
   Future<void> register() => registerDependencies(
     database: AppDatabase(NativeDatabase.memory()),
     documentsDirectory: documents,
+    temporaryDirectory: temporary,
     packageInfo: packageInfo,
   );
 
@@ -129,6 +132,23 @@ void main() {
 
     expect(await getIt<CheckInRepository>().watchAll().first, isEmpty);
     expect(Directory(p.join(documents.path, 'photos')).listSync(), isEmpty);
+  });
+
+  test('deletes picked photos left over from a form open at the last '
+      'launch', () async {
+    final leftover = File(p.join(temporary.path, 'picked_photos', 'a.jpg'));
+    await leftover.create(recursive: true);
+    final unrelated = File(p.join(temporary.path, 'other.tmp'));
+    await unrelated.create();
+
+    await register();
+
+    expect(leftover.existsSync(), isFalse);
+    expect(unrelated.existsSync(), isTrue);
+    expect(
+      getIt<PhotoPicker>().folder.path,
+      p.join(temporary.path, 'picked_photos'),
+    );
   });
 
   test('deletes photos left over from an unfinished save', () async {

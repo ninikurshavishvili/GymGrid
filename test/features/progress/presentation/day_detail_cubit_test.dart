@@ -53,6 +53,7 @@ void main() {
     updateCheckIn = _MockUpdateCheckIn();
     deleteCheckIn = _MockDeleteCheckIn();
     photoPicker = _MockPhotoPicker();
+    when(() => photoPicker.discard(any())).thenAnswer((_) async {});
     checkIns = StreamController<CheckIn?>.broadcast();
     addTearDown(checkIns.close);
     when(() => watchCheckIn(day)).thenAnswer((_) => checkIns.stream);
@@ -174,6 +175,63 @@ void main() {
         ),
       ).called(1),
     );
+
+    blocTest<DayDetailCubit, DayDetailState>(
+      'discards the picked file once it is stored',
+      setUp: () {
+        when(
+          () => photoPicker.takePhoto(),
+        ).thenAnswer((_) async => '/tmp/new.jpg');
+        stubUpdate(() async => stored);
+      },
+      build: buildCubit,
+      seed: () => loaded,
+      act: (cubit) => cubit.takePhoto(),
+      verify: (_) =>
+          verify(() => photoPicker.discard('/tmp/new.jpg')).called(1),
+    );
+
+    blocTest<DayDetailCubit, DayDetailState>(
+      'discards the picked file when it cannot be stored, too',
+      setUp: () {
+        when(
+          () => photoPicker.takePhoto(),
+        ).thenAnswer((_) async => '/tmp/new.jpg');
+        stubUpdate(() async => throw const StorageFailure());
+      },
+      build: buildCubit,
+      seed: () => loaded,
+      act: (cubit) => cubit.takePhoto(),
+      verify: (cubit) {
+        verify(() => photoPicker.discard('/tmp/new.jpg')).called(1);
+        expect(
+          (cubit.state as DayDetailLoaded).error,
+          DayDetailError.photoNotSaved,
+        );
+      },
+    );
+
+    test('discards a photo that arrives after the screen closes', () async {
+      final photo = Completer<String?>();
+      when(() => photoPicker.takePhoto()).thenAnswer((_) => photo.future);
+      final cubit = buildCubit()..emit(loaded);
+
+      final adding = cubit.takePhoto();
+      await cubit.close();
+      photo.complete('/tmp/late.jpg');
+      await adding;
+
+      verify(() => photoPicker.discard('/tmp/late.jpg')).called(1);
+      verifyNever(
+        () => updateCheckIn(
+          id: any(named: 'id'),
+          photos: any(named: 'photos'),
+          workoutType: any(named: 'workoutType'),
+          activity: any(named: 'activity'),
+          note: any(named: 'note'),
+        ),
+      );
+    });
 
     blocTest<DayDetailCubit, DayDetailState>(
       "keeps an Other workout's activity",
