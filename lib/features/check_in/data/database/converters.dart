@@ -4,6 +4,7 @@ import 'package:drift/drift.dart';
 
 import '../../../../core/date/calendar_day.dart';
 import '../../domain/entities/other_activity.dart';
+import '../../domain/entities/rating.dart';
 import '../../domain/entities/workout_type.dart';
 
 /// Stores a [CalendarDay] as `yyyy-MM-dd` text, which also sorts by date.
@@ -81,5 +82,35 @@ class OtherActivityConverter extends TypeConverter<OtherActivity, String> {
     OtherActivity.groupClass => 'class',
     OtherActivity.sport => 'sport',
     OtherActivity.walk => 'walk',
+  };
+}
+
+/// Stores a [Rating] as its percentage, a whole number.
+///
+/// A percentage rather than a step number (1 to 5), so finer steps could be
+/// added later without changing rows already saved. The numbers are spelled
+/// out here, rather than read from [Rating.percent], for the same reason as
+/// [WorkoutTypeConverter]: changing the enum can't silently change what's
+/// on disk.
+class RatingConverter extends TypeConverter<Rating, int> {
+  const RatingConverter();
+
+  @override
+  Rating fromSql(int fromDb) => switch (fromDb) {
+    20 => Rating.veryLow,
+    40 => Rating.low,
+    60 => Rating.medium,
+    80 => Rating.high,
+    100 => Rating.max,
+    _ => throw FormatException('Unknown rating', fromDb),
+  };
+
+  @override
+  int toSql(Rating value) => switch (value) {
+    Rating.veryLow => 20,
+    Rating.low => 40,
+    Rating.medium => 60,
+    Rating.high => 80,
+    Rating.max => 100,
   };
 }

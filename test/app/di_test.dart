@@ -7,6 +7,7 @@ import 'package:gym_grid/features/check_in/data/database/app_database.dart';
 import 'package:gym_grid/features/check_in/data/local_check_in_repository.dart';
 import 'package:gym_grid/features/check_in/data/photo_store.dart';
 import 'package:gym_grid/features/check_in/domain/entities/check_in_photo.dart';
+import 'package:gym_grid/features/check_in/domain/entities/rating.dart';
 import 'package:gym_grid/features/check_in/domain/entities/workout_type.dart';
 import 'package:gym_grid/features/check_in/domain/repositories/check_in_repository.dart';
 import 'package:gym_grid/features/check_in/domain/repositories/photo_locator.dart';
@@ -92,6 +93,7 @@ void main() {
     final saved = await getIt<SaveCheckIn>()(
       sourcePhotoPaths: [photo.path],
       workoutType: WorkoutType.mobility,
+      effort: Rating.high,
     );
 
     expect((await getIt<WatchProgress>()().first).checkIns, [saved]);
@@ -104,8 +106,11 @@ void main() {
       photos: [StoredPhoto(saved.coverPhotoPath)],
       workoutType: WorkoutType.cardio,
       activity: null,
+      effort: Rating.max,
+      energy: Rating.low,
     );
     expect(await getIt<GetCheckIn>()(saved.date), edited);
+    expect((edited.effort, edited.energy), (Rating.max, Rating.low));
 
     await getIt<DeleteCheckIn>()(saved.id);
 

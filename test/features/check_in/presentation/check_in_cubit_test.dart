@@ -7,6 +7,7 @@ import 'package:gym_grid/core/errors/failure.dart';
 import 'package:gym_grid/features/check_in/domain/entities/check_in.dart';
 import 'package:gym_grid/features/check_in/domain/entities/check_in_photo.dart';
 import 'package:gym_grid/features/check_in/domain/entities/other_activity.dart';
+import 'package:gym_grid/features/check_in/domain/entities/rating.dart';
 import 'package:gym_grid/features/check_in/domain/entities/workout_type.dart';
 import 'package:gym_grid/features/check_in/domain/usecases/get_check_in.dart';
 import 'package:gym_grid/features/check_in/domain/usecases/save_check_in.dart';
@@ -56,6 +57,7 @@ void main() {
   setUpAll(() {
     registerFallbackValue(WorkoutType.other);
     registerFallbackValue(OtherActivity.sport);
+    registerFallbackValue(Rating.medium);
     registerFallbackValue(<String>[]);
     registerFallbackValue(<CheckInPhoto>[]);
   });
@@ -86,6 +88,8 @@ void main() {
         photos: any(named: 'photos'),
         workoutType: any(named: 'workoutType'),
         activity: any(named: 'activity'),
+        effort: any(named: 'effort'),
+        energy: any(named: 'energy'),
         note: any(named: 'note'),
       ),
     ).thenAnswer((_) => answer());
@@ -553,6 +557,8 @@ void main() {
             photos: const [StoredPhoto('photos/2.jpg'), picked],
             workoutType: WorkoutType.mobility,
             activity: null,
+            effort: null,
+            energy: null,
             note: 'Hips',
           ),
         ).called(1);
@@ -595,7 +601,42 @@ void main() {
           photos: loaded.photos,
           workoutType: WorkoutType.other,
           activity: OtherActivity.groupClass,
+          effort: null,
+          energy: null,
           note: 'Intervals',
+        ),
+      ).called(1),
+    );
+
+    blocTest<CheckInCubit, CheckInState>(
+      "keeps an edited check-in's effort and energy",
+      setUp: () => stubUpdate(() async => stored),
+      build: () => buildCubit(editingDay: day),
+      seed: () => CheckInState(
+        isEditing: true,
+        original: CheckIn(
+          id: '1',
+          date: day,
+          photoPaths: const ['photos/1.jpg'],
+          workoutType: WorkoutType.cardio,
+          effort: Rating.high,
+          energy: Rating.veryLow,
+          createdAt: DateTime(2026, 11, 6, 7, 42),
+        ),
+        photos: const [StoredPhoto('photos/1.jpg')],
+        // A change of type, as Save needs something changed.
+        workoutType: WorkoutType.mobility,
+      ),
+      act: (cubit) => cubit.save(),
+      verify: (_) => verify(
+        () => updateCheckIn(
+          id: '1',
+          photos: const [StoredPhoto('photos/1.jpg')],
+          workoutType: WorkoutType.mobility,
+          activity: null,
+          effort: Rating.high,
+          energy: Rating.veryLow,
+          note: '',
         ),
       ).called(1),
     );

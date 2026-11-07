@@ -2,6 +2,7 @@ import 'package:equatable/equatable.dart';
 
 import '../../../../core/date/calendar_day.dart';
 import 'other_activity.dart';
+import 'rating.dart';
 import 'workout_type.dart';
 
 /// A check-in that hasn't been stored yet, passed to
@@ -18,6 +19,8 @@ class NewCheckIn extends Equatable {
     required this.createdAt,
     this.activity,
     this.note,
+    this.effort,
+    this.energy,
   }) : assert(
          activity == null || workoutType == WorkoutType.other,
          'Only an Other workout has an activity',
@@ -28,6 +31,8 @@ class NewCheckIn extends Equatable {
   final WorkoutType workoutType;
   final OtherActivity? activity;
   final String? note;
+  final Rating? effort;
+  final Rating? energy;
   final DateTime createdAt;
 
   @override
@@ -37,6 +42,8 @@ class NewCheckIn extends Equatable {
     workoutType,
     activity,
     note,
+    effort,
+    energy,
     createdAt,
   ];
 }

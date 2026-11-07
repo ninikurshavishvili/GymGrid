@@ -2,6 +2,7 @@ import 'package:equatable/equatable.dart';
 
 import 'check_in_photo.dart';
 import 'other_activity.dart';
+import 'rating.dart';
 import 'workout_type.dart';
 
 /// The new contents of an existing check-in, passed to
@@ -13,6 +14,8 @@ class CheckInEdit extends Equatable {
     required this.workoutType,
     this.activity,
     this.note,
+    this.effort,
+    this.energy,
   }) : assert(
          activity == null || workoutType == WorkoutType.other,
          'Only an Other workout has an activity',
@@ -27,7 +30,17 @@ class CheckInEdit extends Equatable {
   final WorkoutType workoutType;
   final OtherActivity? activity;
   final String? note;
+  final Rating? effort;
+  final Rating? energy;
 
   @override
-  List<Object?> get props => [id, photos, workoutType, activity, note];
+  List<Object?> get props => [
+    id,
+    photos,
+    workoutType,
+    activity,
+    note,
+    effort,
+    energy,
+  ];
 }

@@ -109,6 +109,8 @@ class DayDetailCubit extends Cubit<DayDetailState> {
             workoutType: checkIn.workoutType,
             activity: checkIn.activity,
             note: checkIn.note,
+            effort: checkIn.effort,
+            energy: checkIn.energy,
           );
         } finally {
           // Stored as a copy by now, or not wanted: either way, the picked

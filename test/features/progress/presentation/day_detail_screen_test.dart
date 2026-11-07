@@ -10,6 +10,7 @@ import 'package:gym_grid/core/errors/failure.dart';
 import 'package:gym_grid/features/check_in/domain/entities/check_in.dart';
 import 'package:gym_grid/features/check_in/domain/entities/check_in_photo.dart';
 import 'package:gym_grid/features/check_in/domain/entities/other_activity.dart';
+import 'package:gym_grid/features/check_in/domain/entities/rating.dart';
 import 'package:gym_grid/features/check_in/domain/entities/workout_type.dart';
 import 'package:gym_grid/features/check_in/domain/repositories/photo_locator.dart';
 import 'package:gym_grid/features/check_in/domain/usecases/delete_check_in.dart';
@@ -72,6 +73,7 @@ void main() {
   setUpAll(() {
     registerFallbackValue(WorkoutType.other);
     registerFallbackValue(OtherActivity.sport);
+    registerFallbackValue(Rating.medium);
     registerFallbackValue(<CheckInPhoto>[]);
   });
 
@@ -253,6 +255,8 @@ void main() {
           photos: any(named: 'photos'),
           workoutType: any(named: 'workoutType'),
           activity: any(named: 'activity'),
+          effort: any(named: 'effort'),
+          energy: any(named: 'energy'),
           note: any(named: 'note'),
         ),
       ).thenAnswer((_) async => checkInWith());
@@ -269,6 +273,8 @@ void main() {
           ],
           workoutType: WorkoutType.strength,
           activity: null,
+          effort: null,
+          energy: null,
           note: 'Deadlift PR',
         ),
       ).called(1);
@@ -296,6 +302,8 @@ void main() {
           photos: any(named: 'photos'),
           workoutType: any(named: 'workoutType'),
           activity: any(named: 'activity'),
+          effort: any(named: 'effort'),
+          energy: any(named: 'energy'),
           note: any(named: 'note'),
         ),
       ).thenAnswer((_) async => throw const StorageFailure());

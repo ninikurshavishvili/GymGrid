@@ -5,6 +5,7 @@ import 'package:gym_grid/core/errors/failure.dart';
 import 'package:gym_grid/features/check_in/domain/entities/check_in.dart';
 import 'package:gym_grid/features/check_in/domain/entities/new_check_in.dart';
 import 'package:gym_grid/features/check_in/domain/entities/other_activity.dart';
+import 'package:gym_grid/features/check_in/domain/entities/rating.dart';
 import 'package:gym_grid/features/check_in/domain/entities/workout_type.dart';
 import 'package:gym_grid/features/check_in/domain/repositories/check_in_repository.dart';
 import 'package:gym_grid/features/check_in/domain/usecases/save_check_in.dart';
@@ -137,6 +138,30 @@ void main() {
       ),
       throwsA(isA<StorageFailure>()),
     );
+  });
+
+  test('passes effort and energy on', () async {
+    await saveCheckInAt(DateTime(2026, 10, 5, 7, 42))(
+      sourcePhotoPaths: const ['/tmp/camera.jpg'],
+      workoutType: WorkoutType.strength,
+      effort: Rating.high,
+      energy: Rating.low,
+    );
+
+    final saved = savedCheckIn();
+    expect(saved.effort, Rating.high);
+    expect(saved.energy, Rating.low);
+  });
+
+  test('leaves effort and energy empty when not given', () async {
+    await saveCheckInAt(DateTime(2026, 10, 5, 7, 42))(
+      sourcePhotoPaths: const ['/tmp/camera.jpg'],
+      workoutType: WorkoutType.strength,
+    );
+
+    final saved = savedCheckIn();
+    expect(saved.effort, isNull);
+    expect(saved.energy, isNull);
   });
 
   group('the activity', () {

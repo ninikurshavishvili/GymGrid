@@ -5,6 +5,7 @@ import 'package:gym_grid/features/check_in/domain/entities/check_in.dart';
 import 'package:gym_grid/features/check_in/domain/entities/check_in_edit.dart';
 import 'package:gym_grid/features/check_in/domain/entities/check_in_photo.dart';
 import 'package:gym_grid/features/check_in/domain/entities/other_activity.dart';
+import 'package:gym_grid/features/check_in/domain/entities/rating.dart';
 import 'package:gym_grid/features/check_in/domain/entities/workout_type.dart';
 import 'package:gym_grid/features/check_in/domain/repositories/check_in_repository.dart';
 import 'package:gym_grid/features/check_in/domain/usecases/update_check_in.dart';
@@ -43,6 +44,8 @@ void main() {
       photos: photos,
       workoutType: WorkoutType.cardio,
       activity: null,
+      effort: null,
+      energy: null,
       note: 'Intervals',
     );
 
@@ -65,6 +68,8 @@ void main() {
       photos: photos,
       workoutType: WorkoutType.cardio,
       activity: null,
+      effort: null,
+      energy: null,
       note: '  Intervals\n',
     );
     await updateCheckIn(
@@ -72,6 +77,8 @@ void main() {
       photos: photos,
       workoutType: WorkoutType.cardio,
       activity: null,
+      effort: null,
+      energy: null,
       note: '   ',
     );
 
@@ -93,6 +100,8 @@ void main() {
         photos: photos,
         workoutType: WorkoutType.cardio,
         activity: null,
+        effort: null,
+        energy: null,
       ),
       throwsA(isA<StorageFailure>()),
     );
@@ -102,12 +111,29 @@ void main() {
       verify(() => repository.update(captureAny())).captured.single
           as CheckInEdit;
 
+  test('passes effort and energy on, for any workout type', () async {
+    await updateCheckIn(
+      id: '1',
+      photos: photos,
+      workoutType: WorkoutType.mobility,
+      activity: null,
+      effort: Rating.medium,
+      energy: Rating.max,
+    );
+
+    final edit = sentEdit();
+    expect(edit.effort, Rating.medium);
+    expect(edit.energy, Rating.max);
+  });
+
   test('keeps the activity of an Other workout', () async {
     await updateCheckIn(
       id: '1',
       photos: photos,
       workoutType: WorkoutType.other,
       activity: OtherActivity.groupClass,
+      effort: null,
+      energy: null,
     );
 
     expect(sentEdit().activity, OtherActivity.groupClass);
@@ -119,6 +145,8 @@ void main() {
       photos: photos,
       workoutType: WorkoutType.mobility,
       activity: OtherActivity.groupClass,
+      effort: null,
+      energy: null,
     );
 
     expect(sentEdit().activity, isNull);

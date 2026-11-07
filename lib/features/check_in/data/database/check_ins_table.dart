@@ -30,6 +30,13 @@ class CheckIns extends Table {
 
   TextColumn get note => text().nullable()();
 
+  /// How hard the workout was, as a percentage. Added in schema version 4.
+  IntColumn get effort => integer().map(const RatingConverter()).nullable()();
+
+  /// How much energy the user had, as a percentage. Added in schema
+  /// version 4.
+  IntColumn get energy => integer().map(const RatingConverter()).nullable()();
+
   DateTimeColumn get createdAt => dateTime()();
 
   @override
