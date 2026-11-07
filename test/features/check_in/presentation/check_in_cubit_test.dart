@@ -77,6 +77,8 @@ void main() {
         workoutType: any(named: 'workoutType'),
         activity: any(named: 'activity'),
         note: any(named: 'note'),
+        effort: any(named: 'effort'),
+        energy: any(named: 'energy'),
       ),
     ).thenAnswer((_) => answer());
   }
@@ -156,6 +158,16 @@ void main() {
       );
     });
 
+    test('for a new check-in, a rating alone is not unsaved work', () {
+      expect(
+        const CheckInState(
+          effort: Rating.high,
+          energy: Rating.low,
+        ).hasUnsavedChanges,
+        isFalse,
+      );
+    });
+
     test('an edit is unsaved only once something differs', () {
       expect(loaded.hasUnsavedChanges, isFalse);
       expect(loaded.canSave, isFalse);
@@ -170,6 +182,8 @@ void main() {
         ),
         loaded.copyWith(photos: const [StoredPhoto('photos/1.jpg')]),
         loaded.copyWith(photos: [...loaded.photos, picked]),
+        loaded.copyWith(effort: () => Rating.max),
+        loaded.copyWith(energy: () => Rating.veryLow),
       ]) {
         expect(changed.hasUnsavedChanges, isTrue);
         expect(changed.canSave, isTrue);
@@ -217,6 +231,28 @@ void main() {
       verify: (cubit) {
         expect(cubit.state.workoutType, WorkoutType.other);
         expect(cubit.state.activity, OtherActivity.groupClass);
+        expect(cubit.state.hasUnsavedChanges, isFalse);
+      },
+    );
+
+    blocTest<CheckInCubit, CheckInState>(
+      'an edit fills in its effort and energy',
+      setUp: () => when(() => getCheckIn(day)).thenAnswer(
+        (_) async => CheckIn(
+          id: '1',
+          date: day,
+          photoPaths: const ['photos/1.jpg'],
+          workoutType: WorkoutType.strength,
+          effort: Rating.high,
+          energy: Rating.low,
+          createdAt: DateTime(2026, 11, 6, 7, 42),
+        ),
+      ),
+      build: () => buildCubit(editingDay: day),
+      act: (cubit) => cubit.load(),
+      verify: (cubit) {
+        expect(cubit.state.effort, Rating.high);
+        expect(cubit.state.energy, Rating.low);
         expect(cubit.state.hasUnsavedChanges, isFalse);
       },
     );
@@ -500,6 +536,43 @@ void main() {
     );
 
     blocTest<CheckInCubit, CheckInState>(
+      'rates effort, and tapping the chosen rating again clears it',
+      build: buildCubit,
+      act: (cubit) => cubit
+        ..toggleEffort(Rating.medium)
+        ..toggleEffort(Rating.max)
+        ..toggleEffort(Rating.max),
+      expect: () => [
+        const CheckInState(effort: Rating.medium),
+        const CheckInState(effort: Rating.max),
+        const CheckInState(),
+      ],
+    );
+
+    blocTest<CheckInCubit, CheckInState>(
+      'rates energy the same way, without touching effort',
+      build: buildCubit,
+      seed: () => const CheckInState(effort: Rating.high),
+      act: (cubit) => cubit
+        ..toggleEnergy(Rating.low)
+        ..toggleEnergy(Rating.low),
+      expect: () => [
+        const CheckInState(effort: Rating.high, energy: Rating.low),
+        const CheckInState(effort: Rating.high),
+      ],
+    );
+
+    blocTest<CheckInCubit, CheckInState>(
+      'rates any workout type, not only Other',
+      build: buildCubit,
+      seed: () => const CheckInState(workoutType: WorkoutType.cardio),
+      act: (cubit) => cubit.toggleEffort(Rating.low),
+      expect: () => [
+        const CheckInState(workoutType: WorkoutType.cardio, effort: Rating.low),
+      ],
+    );
+
+    blocTest<CheckInCubit, CheckInState>(
       'keeps the note as it is typed',
       build: buildCubit,
       act: (cubit) => cubit.noteChanged('Leg day'),
@@ -609,7 +682,30 @@ void main() {
     );
 
     blocTest<CheckInCubit, CheckInState>(
-      "keeps an edited check-in's effort and energy",
+      'saves the chosen effort and energy',
+      setUp: () => stubSave(() async => stored),
+      build: buildCubit,
+      seed: () => const CheckInState(
+        photos: [picked],
+        workoutType: WorkoutType.strength,
+        effort: Rating.high,
+        energy: Rating.veryLow,
+      ),
+      act: (cubit) => cubit.save(),
+      verify: (_) => verify(
+        () => saveCheckIn(
+          sourcePhotoPaths: ['/tmp/camera.jpg'],
+          workoutType: WorkoutType.strength,
+          activity: null,
+          note: '',
+          effort: Rating.high,
+          energy: Rating.veryLow,
+        ),
+      ).called(1),
+    );
+
+    blocTest<CheckInCubit, CheckInState>(
+      'an edit saves a changed rating, and one cleared as none',
       setUp: () => stubUpdate(() async => stored),
       build: () => buildCubit(editingDay: day),
       seed: () => CheckInState(
@@ -624,18 +720,18 @@ void main() {
           createdAt: DateTime(2026, 11, 6, 7, 42),
         ),
         photos: const [StoredPhoto('photos/1.jpg')],
-        // A change of type, as Save needs something changed.
-        workoutType: WorkoutType.mobility,
+        workoutType: WorkoutType.cardio,
+        effort: Rating.max,
       ),
       act: (cubit) => cubit.save(),
       verify: (_) => verify(
         () => updateCheckIn(
           id: '1',
           photos: const [StoredPhoto('photos/1.jpg')],
-          workoutType: WorkoutType.mobility,
+          workoutType: WorkoutType.cardio,
           activity: null,
-          effort: Rating.high,
-          energy: Rating.veryLow,
+          effort: Rating.max,
+          energy: null,
           note: '',
         ),
       ).called(1),

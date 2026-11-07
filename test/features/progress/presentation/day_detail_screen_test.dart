@@ -58,6 +58,8 @@ void main() {
     WorkoutType workoutType = WorkoutType.strength,
     OtherActivity? activity,
     String? note = 'Deadlift PR',
+    Rating? effort,
+    Rating? energy,
   }) {
     return CheckIn(
       id: '1',
@@ -66,6 +68,8 @@ void main() {
       workoutType: workoutType,
       activity: activity,
       note: note,
+      effort: effort,
+      energy: energy,
       createdAt: DateTime(2026, 11, 6, 7, 42),
     );
   }
@@ -179,6 +183,36 @@ void main() {
 
       expect(tester.takeException(), isNull);
       expect(find.text('Strength'), findsOneWidget);
+    });
+
+    testWidgets('shows the ratings, read out together', (tester) async {
+      final semantics = tester.ensureSemantics();
+      await pumpDay(
+        tester,
+        checkInWith(effort: Rating.high, energy: Rating.low),
+      );
+
+      expect(find.text('Effort'), findsOneWidget);
+      expect(find.text('80%'), findsOneWidget);
+      expect(find.text('Energy'), findsOneWidget);
+      expect(find.text('40%'), findsOneWidget);
+      expect(find.bySemanticsLabel('Effort 80%, Energy 40%'), findsOneWidget);
+      semantics.dispose();
+    });
+
+    testWidgets('shows only a rating that was given', (tester) async {
+      await pumpDay(tester, checkInWith(energy: Rating.max));
+
+      expect(find.text('Energy'), findsOneWidget);
+      expect(find.text('100%'), findsOneWidget);
+      expect(find.text('Effort'), findsNothing);
+    });
+
+    testWidgets('shows no ratings when there are none', (tester) async {
+      await pumpDay(tester, checkInWith());
+
+      expect(find.text('Effort'), findsNothing);
+      expect(find.text('Energy'), findsNothing);
     });
 
     testWidgets('survives a photo path it cannot locate', (tester) async {
@@ -506,6 +540,8 @@ void main() {
         checkInWith(
           photoPaths: const ['photos/1.jpg', 'photos/2.jpg'],
           note: 'A long note about the session ' * 6,
+          effort: Rating.max,
+          energy: Rating.max,
         ),
         textScale: 3,
       );
@@ -549,6 +585,8 @@ void main() {
         checkInWith(
           photoPaths: const ['photos/1.jpg', 'photos/2.jpg'],
           note: 'A long note about the session ' * 6,
+          effort: Rating.max,
+          energy: Rating.max,
         ),
         textScale: 3,
         screen: smallestPhoneScreen,

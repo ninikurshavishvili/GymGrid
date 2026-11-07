@@ -9,6 +9,7 @@ import 'package:gym_grid/core/date/calendar_day.dart';
 import 'package:gym_grid/core/errors/failure.dart';
 import 'package:gym_grid/features/check_in/domain/entities/check_in.dart';
 import 'package:gym_grid/features/check_in/domain/entities/other_activity.dart';
+import 'package:gym_grid/features/check_in/domain/entities/rating.dart';
 import 'package:gym_grid/features/check_in/domain/entities/workout_type.dart';
 import 'package:gym_grid/features/check_in/domain/repositories/photo_locator.dart';
 import 'package:gym_grid/features/progress/domain/entities/history_month.dart';
@@ -43,6 +44,8 @@ void main() {
     OtherActivity? activity,
     String? note,
     String? photoPath,
+    Rating? effort,
+    Rating? energy,
   }) {
     return CheckIn(
       id: '$day',
@@ -51,6 +54,8 @@ void main() {
       workoutType: workoutType,
       activity: activity,
       note: note,
+      effort: effort,
+      energy: energy,
       createdAt: day.toLocalDateTime().add(
         const Duration(hours: 7, minutes: 42),
       ),
@@ -197,6 +202,20 @@ void main() {
       expect(find.text('Deadlift PR'), findsOneWidget);
     });
 
+    testWidgets('a row shows its ratings, when there are any', (tester) async {
+      stubCheckIns([
+        checkInOn(nov6, effort: Rating.high, energy: Rating.low),
+        checkInOn(nov2, effort: Rating.medium),
+        checkInOn(oct30),
+      ]);
+
+      await pumpHistory(tester);
+
+      expect(find.text('Effort 80% · Energy 40%'), findsOneWidget);
+      expect(find.text('Effort 60%'), findsOneWidget);
+      expect(find.textContaining('Effort'), findsNWidgets(2));
+    });
+
     testWidgets('an Other workout is named by its activity', (tester) async {
       stubCheckIns([
         checkInOn(
@@ -262,6 +281,29 @@ void main() {
           ),
         ),
         isSemantics(isButton: true, hasTapAction: true),
+      );
+      semantics.dispose();
+    });
+
+    testWidgets('a row reads out its ratings before the note', (tester) async {
+      final semantics = tester.ensureSemantics();
+      stubCheckIns([
+        checkInOn(
+          nov6,
+          note: 'Deadlift PR',
+          effort: Rating.high,
+          energy: Rating.low,
+        ),
+      ]);
+
+      await pumpHistory(tester);
+
+      expect(
+        find.bySemanticsLabel(
+          'Strength, Friday, November 6, 2026, 7:42 AM, Effort 80%, '
+          'Energy 40%, Deadlift PR',
+        ),
+        findsOneWidget,
       );
       semantics.dispose();
     });

@@ -195,6 +195,7 @@ class _HistoryRow extends StatelessWidget {
         checkIn.title,
         localizations.formatFullDate(date),
         time,
+        ...checkIn.ratingLabels,
         ?checkIn.notePreview,
       ].join(', '),
       // Excluding the children also drops the InkWell's tap action, so the

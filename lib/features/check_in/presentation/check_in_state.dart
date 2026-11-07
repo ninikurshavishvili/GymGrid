@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import '../domain/entities/check_in.dart';
 import '../domain/entities/check_in_photo.dart';
 import '../domain/entities/other_activity.dart';
+import '../domain/entities/rating.dart';
 import '../domain/entities/workout_type.dart';
 import 'photo_picker.dart';
 
@@ -18,6 +19,8 @@ class CheckInState extends Equatable {
     this.photos = const [],
     this.workoutType,
     this.activity,
+    this.effort,
+    this.energy,
     this.note = '',
     this.status = CheckInStatus.editing,
     this.photoProblem,
@@ -37,6 +40,12 @@ class CheckInState extends Equatable {
 
   /// Only ever set while [workoutType] is Other.
   final OtherActivity? activity;
+
+  /// Null until the user rates it, which is optional.
+  final Rating? effort;
+
+  /// Null until the user rates it, which is optional.
+  final Rating? energy;
 
   final String note;
   final CheckInStatus status;
@@ -58,8 +67,8 @@ class CheckInState extends Equatable {
       (!isEditing || hasUnsavedChanges);
 
   /// Whether leaving now would lose something worth asking about. For a new
-  /// check-in, choosing a workout type alone isn't: it takes one tap to do
-  /// again.
+  /// check-in, choosing a workout type or a rating alone isn't: each takes
+  /// one tap to do again.
   bool get hasUnsavedChanges {
     final original = this.original;
     if (original == null) return photos.isNotEmpty || note.trim().isNotEmpty;
@@ -69,17 +78,21 @@ class CheckInState extends Equatable {
         ]) ||
         workoutType != original.workoutType ||
         activity != original.activity ||
+        effort != original.effort ||
+        energy != original.energy ||
         CheckIn.cleanNote(note) != original.note;
   }
 
-  /// [activity] and [photoProblem] are functions so that passing
-  /// `() => null` can clear them, which a plain nullable parameter couldn't
-  /// tell apart from leaving it out.
+  /// [activity], [effort], [energy] and [photoProblem] are functions so
+  /// that passing `() => null` can clear them, which a plain nullable
+  /// parameter couldn't tell apart from leaving it out.
   CheckInState copyWith({
     CheckIn? original,
     List<CheckInPhoto>? photos,
     WorkoutType? workoutType,
     ValueGetter<OtherActivity?>? activity,
+    ValueGetter<Rating?>? effort,
+    ValueGetter<Rating?>? energy,
     String? note,
     CheckInStatus? status,
     ValueGetter<PhotoProblem?>? photoProblem,
@@ -91,6 +104,8 @@ class CheckInState extends Equatable {
       photos: photos ?? this.photos,
       workoutType: workoutType ?? this.workoutType,
       activity: activity == null ? this.activity : activity(),
+      effort: effort == null ? this.effort : effort(),
+      energy: energy == null ? this.energy : energy(),
       note: note ?? this.note,
       status: status ?? this.status,
       photoProblem: photoProblem == null ? this.photoProblem : photoProblem(),
@@ -105,6 +120,8 @@ class CheckInState extends Equatable {
     photos,
     workoutType,
     activity,
+    effort,
+    energy,
     note,
     status,
     photoProblem,

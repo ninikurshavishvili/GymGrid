@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../domain/entities/check_in.dart';
 import '../domain/entities/check_in_photo.dart';
 import '../domain/repositories/photo_locator.dart';
+import 'rating_labels.dart';
 
 /// Turns stored photo paths into images.
 extension PhotoImages on PhotoLocator {
@@ -42,4 +43,16 @@ extension CheckInTime on CheckIn {
 /// for. Null when there's no note.
 extension CheckInNotePreview on CheckIn {
   String? get notePreview => note?.split('\n').first;
+}
+
+/// The ratings a check-in has, such as "Effort 80%" and "Energy 40%", in
+/// that order. Empty when the user rated neither.
+///
+/// A list, so each caller joins it to suit: with " · " on screen, and with
+/// commas for VoiceOver, which reads a dot out as "middle dot".
+extension CheckInRatings on CheckIn {
+  List<String> get ratingLabels => [
+    if (effort case final effort?) 'Effort ${effort.label}',
+    if (energy case final energy?) 'Energy ${energy.label}',
+  ];
 }

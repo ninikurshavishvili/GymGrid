@@ -7,8 +7,8 @@ import '../../../check_in/presentation/check_in_display.dart';
 import '../../../check_in/presentation/workout_type_labels.dart';
 
 /// A check-in as a list row: its cover photo, title, a line saying when,
-/// and the start of its note, with the iOS disclosure chevron because the
-/// row opens it.
+/// its ratings and the start of its note, with the iOS disclosure chevron
+/// because the row opens it.
 ///
 /// Only the contents: callers make it a button, with a label for VoiceOver
 /// that fits where it's shown.
@@ -37,6 +37,7 @@ class CheckInSummary extends StatelessWidget {
     final colors = context.colors;
     final text = context.textStyles;
     final note = checkIn.notePreview;
+    final ratings = checkIn.ratingLabels;
 
     final thumbnail = _Thumbnail(image: cover);
     final details = Column(
@@ -48,6 +49,11 @@ class CheckInSummary extends StatelessWidget {
           style: text.bodyStrong.copyWith(color: colors.textPrimary),
         ),
         Text(when, style: text.footnote.copyWith(color: whenColor)),
+        if (ratings.isNotEmpty)
+          Text(
+            ratings.join(' · '),
+            style: text.footnote.copyWith(color: colors.textSecondary),
+          ),
         if (note != null)
           Text(
             note,

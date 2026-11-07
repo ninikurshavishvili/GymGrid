@@ -93,6 +93,7 @@ class _CheckedIn extends StatelessWidget {
       semanticLabel: [
         'Today: ${checkIn.title}',
         'checked in at $time',
+        ...checkIn.ratingLabels,
         ?checkIn.notePreview,
       ].join(', '),
       child: CheckInSummary(
