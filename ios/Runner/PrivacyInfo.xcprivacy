@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+	GymGrid's privacy manifest. The app collects no data and doesn't track,
+	because nothing leaves the device.
+
+	The declared APIs come from SQLite (sqlite3.framework), which ships
+	without a manifest of its own. It reads the metadata of its own database
+	files with stat, fstat and lstat, and checks the file system with statfs
+	and fstatfs. Without these declarations App Store Connect rejects the
+	upload with ITMS-91053. Recheck them when SQLite or its package changes:
+	nm -u Runner.app/Frameworks/sqlite3.framework/sqlite3
+-->
+<plist version="1.0">
+<dict>
+	<key>NSPrivacyTracking</key>
+	<false/>
+	<key>NSPrivacyTrackingDomains</key>
+	<array/>
+	<key>NSPrivacyCollectedDataTypes</key>
+	<array/>
+	<key>NSPrivacyAccessedAPITypes</key>
+	<array>
+		<dict>
+			<key>NSPrivacyAccessedAPIType</key>
+			<string>NSPrivacyAccessedAPICategoryFileTimestamp</string>
+			<key>NSPrivacyAccessedAPITypeReasons</key>
+			<array>
+				<!-- Metadata of files inside the app container. -->
+				<string>C617.1</string>
+			</array>
+		</dict>
+		<dict>
+			<key>NSPrivacyAccessedAPIType</key>
+			<string>NSPrivacyAccessedAPICategoryDiskSpace</string>
+			<key>NSPrivacyAccessedAPITypeReasons</key>
+			<array>
+				<!-- Whether there's room to write files. A full disk fails the
+				     save, and the app says it couldn't save. -->
+				<string>E174.1</string>
+			</array>
+		</dict>
+	</array>
+</dict>
+</plist>

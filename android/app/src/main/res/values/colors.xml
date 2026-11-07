@@ -2,4 +2,5 @@
 <resources>
     <!-- GymGrid bgPrimary. Shown behind the launch image and Flutter UI. -->
     <color name="window_background">#0D1117</color>
+	<color name="ic_launcher_background">#000000</color>
 </resources>
