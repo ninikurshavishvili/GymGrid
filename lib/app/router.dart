@@ -14,6 +14,8 @@ import '../features/progress/presentation/history_cubit.dart';
 import '../features/progress/presentation/history_screen.dart';
 import '../features/progress/presentation/home_cubit.dart';
 import '../features/progress/presentation/home_screen.dart';
+import '../features/progress/presentation/trends_cubit.dart';
+import '../features/progress/presentation/trends_screen.dart';
 import '../features/settings/presentation/settings_cubit.dart';
 import '../features/settings/presentation/settings_screen.dart';
 import 'app_links.dart';
@@ -33,6 +35,9 @@ abstract final class AppRoutes {
   static const String _settingsSegment = 'settings';
   static const String settings = '/$_settingsSegment';
 
+  static const String _trendsSegment = 'trends';
+  static const String trends = '/$_trendsSegment';
+
   static const String _dayParam = 'date';
   static const String _dayDetailSegment = 'day/:$_dayParam';
   static const String _editSegment = 'edit';
@@ -49,10 +54,10 @@ abstract final class AppRoutes {
 
 /// Builds the app's route table.
 ///
-/// Check-in, history, settings and day detail are children of home, so a deep link to
-/// `/day/2026-10-03` still has home underneath it to go back to. A day
-/// opened from history is pushed on top of it instead, so Back returns
-/// there.
+/// Check-in, history, settings, trends and day detail are children of home,
+/// so a deep link to `/day/2026-10-03` still has home underneath it to go
+/// back to. A day opened from history is pushed on top of it instead, so
+/// Back returns there.
 GoRouter createRouter() {
   return GoRouter(
     initialLocation: AppRoutes.home,
@@ -76,6 +81,13 @@ GoRouter createRouter() {
             builder: (context, state) => BlocProvider(
               create: (_) => HistoryCubit(watchHistory: getIt())..watch(),
               child: HistoryScreen(photoLocator: getIt()),
+            ),
+          ),
+          GoRoute(
+            path: AppRoutes._trendsSegment,
+            builder: (context, state) => BlocProvider(
+              create: (_) => TrendsCubit(watchTrends: getIt())..watch(),
+              child: const TrendsScreen(),
             ),
           ),
           GoRoute(

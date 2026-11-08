@@ -18,8 +18,10 @@ import 'package:gym_grid/features/check_in/domain/usecases/save_check_in.dart';
 import 'package:gym_grid/features/check_in/domain/usecases/update_check_in.dart';
 import 'package:gym_grid/features/check_in/domain/usecases/watch_check_in.dart';
 import 'package:gym_grid/features/check_in/presentation/photo_picker.dart';
+import 'package:gym_grid/features/progress/domain/entities/trends.dart';
 import 'package:gym_grid/features/progress/domain/usecases/watch_history.dart';
 import 'package:gym_grid/features/progress/domain/usecases/watch_progress.dart';
+import 'package:gym_grid/features/progress/domain/usecases/watch_trends.dart';
 import 'package:gym_grid/features/settings/presentation/link_opener.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path/path.dart' as p;
@@ -98,6 +100,8 @@ void main() {
 
     expect((await getIt<WatchProgress>()().first).checkIns, [saved]);
     expect((await getIt<WatchHistory>()().first).single.checkIns, [saved]);
+    final trends = await getIt<WatchTrends>()(TrendRange.month).first;
+    expect(trends.effort.points.single.percent, 80);
     expect(await getIt<GetCheckIn>()(saved.date), saved);
     expect(await getIt<WatchCheckIn>()(saved.date).first, saved);
 
